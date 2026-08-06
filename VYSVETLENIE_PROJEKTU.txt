@@ -1,0 +1,432 @@
+filepath: c:\Users\OEM\Documents\BP CONTROLL\VYSVETLENIE_PROJEKTU.txt
+
+BP CONTROL - VYSVETLENIE PROJEKTU
+
+Tento projekt je webova aplikacia v Laraveli na vyplnanie, spravu a export posudkov bakalarskej prace.
+Profesor alebo admin sa prihlasi, vyplni formular, data sa ulozia do databazy a nasledne sa z nich vie vygenerovat PDF.
+
+--------------------------------------------------
+1. AKO TO CELE FUNGUJE
+--------------------------------------------------
+
+Tok aplikacie je taky:
+
+1. Pouzivatel otvori webovu stranku.
+2. Laravel pozrie routu, teda aku URL otvoril.
+3. Ak ide o chranenu cast, system overi prihlasenie.
+4. Controller spracuje poziadavku a pripravi data.
+5. Model komunikuje s databazou.
+6. Blade sablona vykresli HTML stranku.
+7. Pri PDF sa pouzije HTML sablona, ktoru DomPDF skonvertuje na PDF.
+
+Jednoducho:
+ROUTE -> CONTROLLER -> MODEL / DATABASE -> VIEW
+
+--------------------------------------------------
+2. NA COM TO BEZI
+--------------------------------------------------
+
+Projekt bezi na tychto technologiach:
+
+- PHP
+- Laravel framework
+- Blade templating engine
+- SQLite databaza
+- Tailwind CSS pre vzhľad
+- Vite pre frontend build
+- Laravel Breeze pre prihlasovanie
+- DomPDF pre generovanie PDF
+
+Laravel sa stara o:
+- routovanie
+- kontrolery
+- modely
+- validaciu
+- prihlasovanie
+- session
+- zobrazenie stranok
+
+Blade sa stara o vykreslenie HTML.
+SQLite sluzi ako lokalna databaza.
+DomPDF sa stara o prevod HTML na PDF.
+
+--------------------------------------------------
+3. KDE SA CO NACHADZA
+--------------------------------------------------
+
+HLAVNE PHP SUBORY PROJEKTU:
+
+- routes/web.php
+  Hlavne webove routy aplikacie.
+  Tu je definovane:
+  - uvodna stranka
+  - zoznam posudkov
+  - vytvorenie noveho posudku
+  - detail posudku
+  - editacia posudku
+  - zmazanie posudku
+  - kopirovanie posudku
+  - export do PDF
+
+  Tento subor len mapuje URL adresy na konkretne metody v controlleroch.
+  Neobsahuje samotnu logiku, iba hovori Laravelu, kam ma request ist.
+
+- routes/auth.php
+  Prihlasovanie a odhlasovanie.
+  Obsahuje routy pre:
+  - login
+  - logout
+  - reset hesla
+  - verifikaciu emailu
+
+  Registracia je zamerne vypnuta, aby sa nikto novy nevedel sam zaregistrovat.
+
+- app/Http/Controllers/ReviewController.php
+  Hlavny controller pre posudky.
+  Toto je najdolezitejsi PHP subor celeho projektu.
+
+  Obsahuje logiku pre:
+  - index() = zoznam posudkov
+  - create() = zobrazenie prazdneho formulara
+  - store() = ulozenie noveho posudku
+  - show() = detail konkretneho posudku
+  - edit() = otvorenie formulara na upravu
+  - update() = ulozenie zmien
+  - destroy() = zmazanie posudku
+  - duplicate() = vytvorenie kopie z existujuceho posudku
+  - pdf() = export posudku do PDF
+
+  Controller:
+  - prijima request
+  - validuje data
+  - nacitava a uklada z databazy
+  - pripravuje premenne pre Blade views
+  - zabezpecuje, aby pouzivatel videl iba to, na co ma pravo
+
+- app/Models/Review.php
+  Model pre tabulku reviews.
+
+  Model reprezentuje jeden posudok v databaze.
+  Slúži na:
+  - nacitanie zaznamov
+  - ulozenie zaznamov
+  - upravu zaznamov
+  - prepojenie na konkrétnu databazovu tabulku
+
+  Typicky obsahuje aj:
+  - fillable polia
+  - castovanie dat
+  - vztahy na iné modely, napr. uzivatela, ktory posudok vytvoril
+
+- app/Models/User.php
+  Standardny Laravel model pre pouzivatela.
+  Slúzi na prihlasovanie, identitu pouzivatela a vztah k posudkom.
+
+- app/Http/Middleware/
+  Middleware vrstva, ktora kontroluje pristup.
+  Tu Laravel overuje:
+  - ci je pouzivatel prihlaseny
+  - ci ma potrebnu rolu alebo opravnenie
+
+- app/Providers/
+  Systemove nastavovanie aplikacie.
+  Tento priecinok obsahuje providery, ktore bootstrapuju Laravel.
+
+- config/review.php
+  Centralna konfiguracia hodnotenia.
+
+  Su tam napr.:
+  - znamky A, B, C, D, E, FX
+  - odporucam / neodporucam
+  - stavy originality
+
+  Je to dobre miesto na hodnoty, ktore sa maju pouzivat v celom projekte na jednom mieste.
+
+- database/migrations/2026_07_16_192103_create_reviews_table.php
+  Migracia, ktora vytvara tabulku reviews.
+
+  V migracii sa definuje:
+  - nazov tabulky
+  - nazvy stlpcov
+  - datove typy
+  - nullable polia
+  - casove stlpce created_at a updated_at
+
+  Bez migracie by Laravel nevedel, ako ma tabulka vyzerat.
+
+- database/seeders/AdminUserSeeder.php
+  Seeder, ktory vytvori admin konto.
+
+  Udaje sa beru z .env:
+  - ADMIN_NAME
+  - ADMIN_EMAIL
+  - ADMIN_PASSWORD
+
+  Po spusteni seedera sa vytvori administrativne prihlasenie, aby sa dala aplikacia hned testovat.
+
+- database/seeders/DatabaseSeeder.php
+  Hlavny seeder, ktory vie spustit dalsie seedery.
+  Zvycajne odtialto Laravel spusta AdminUserSeeder.
+
+- database/factories/
+  Factory subory sluzia na generovanie testovacich dat.
+  V tomto projekte sa mozu pouzit pri vyvoji alebo testovani.
+
+- routes/api.php
+  Ak by projekt mal API, bolo by tu.
+  Podla aktualneho popisu je hlavne jadro aplikacie vo web routach.
+  Neskor mozne pripojenie na dochadzku e-dance alebo popripde na zoznam bc. ing. studentov na vyhotovenie posudkov
+
+--------------------------------------------------
+4. VIEWS 
+--------------------------------------------------
+
+Toto nie su PHP logicke subory, ale Blade sablony, ktore Laravel vykresluje do HTML.
+
+- resources/views/reviews/index.blade.php
+  Zoznam vsetkych ulozenych posudkov.
+  Umoznueje:
+  - filtrovanie
+  - prepnutie scope pre admina
+  - prehlad v tabulke
+  - akcie detail, uprava, kópia, PDF
+
+- resources/views/reviews/form.blade.php
+  Hlavny formular na vyplnenie posudku.
+  Toto je najdolezitejsia obrazovka pre profesora.
+
+- resources/views/reviews/show.blade.php
+  Detail jedneho konkretneho posudku po ulozeni.
+
+- resources/views/reviews/pdf.blade.php
+  Sablona pre PDF export.
+  Odtialto sa generuje dokument na stiahnutie.
+
+- resources/views/auth/login.blade.php
+  Prihlasovacia obrazovka.
+
+- resources/views/layouts/navigation.blade.php
+  Horny panel aplikacie po prihlaseni.
+
+- resources/views/layouts/app.blade.php
+  Hlavny layout aplikacie.
+  Obsah ostatnych stranok sa do neho vkladá ako vnoreny obsah.
+
+--------------------------------------------------
+5. DATABAZA
+--------------------------------------------------
+
+Pouziva sa SQLite.
+To znamena, ze data sa ukladaju do lokalneho suboru databazy, nie do MySQL servera.
+
+V tabulke reviews sa uklada napr.:
+- akademicky rok
+- meno studenta
+- studijny program
+- nazov prace
+- meno veduceho
+- miesto a datum
+- znamky pre jednotlive oblasti
+- komentare
+- miera originality
+- vysledna znamka
+- odporucenie k obhajobe
+
+Laravel cez Eloquent model preklada PHP objekty na SQL dotazy.
+
+--------------------------------------------------
+6. PRIHLASENIE ADMINA
+--------------------------------------------------
+
+Admin konto sa vytvara cez seed.
+Udaje su v .env:
+
+- ADMIN_NAME
+- ADMIN_EMAIL
+- ADMIN_PASSWORD
+
+Aktualne predvolene konto je:
+- email: admin@bpcontrol.local
+- heslo: admin123456
+
+Po migracii a seedovani sa vies hned prihlasit.
+
+--------------------------------------------------
+7. AKO FUNGUJE FORMULAR
+--------------------------------------------------
+
+Profesor vyplna formular v resources/views/reviews/form.blade.php.
+Po odoslani formular ide request do ReviewController@store alebo ReviewController@update.
+
+Controller spravi validaciu:
+- kontrola povinnych poli
+- kontrola datumu
+- kontrola percent originality
+- kontrola znamok, ci su len A/B/C/D/E/FX
+
+Ak je vsetko v poriadku:
+- vytvori sa alebo upravi zaznam v databaze
+- pouzivatel sa presmeruje na detail posudku
+
+--------------------------------------------------
+8. AKO FUNGUJE PDF
+--------------------------------------------------
+
+PDF sa generuje cez metodu pdf() v ReviewController.
+Ta zavola Blade sablonu:
+- resources/views/reviews/pdf.blade.php
+
+Potom DomPDF z tejto HTML sablony vytvori PDF subor.
+
+Postup:
+- nacitaju sa data z konkretneho posudku
+- naplnia sa do PDF sablony
+- sablona sa prevedie na PDF
+- pouzivatel si ho stiahne
+
+Ak budes chciet PDF viac priblizit presnemu skolskemu tlacivu, najviac sa bude upravovat prave pdf.blade.php.
+
+--------------------------------------------------
+9. FRONTEND
+--------------------------------------------------
+
+Frontend bezi cez Vite.
+
+Subory:
+- resources/css/app.css
+- resources/js/app.js
+- package.json
+
+Tieto subory sa builduju do public/build.
+Laravel potom nacita hotove CSS a JS do stranky.
+
+--------------------------------------------------
+10. COMPOSER A NPM
+--------------------------------------------------
+
+Projekt pouziva:
+
+- Composer
+  na PHP baliky
+
+- npm
+  na frontend build
+
+Dolezite baliky:
+- laravel/framework
+- laravel/breeze
+- barryvdh/laravel-dompdf
+
+11. spustenie
+--------------------------------------------------
+
+Zakladny postup:
+
+1. composer install
+2. php artisan key:generate
+3. php artisan migrate --seed
+4. "C:\Program Files\nodejs\npm.cmd" install
+5. "C:\Program Files\nodejs\npm.cmd" run build
+6. php artisan serve
+
+Potom otvoris lokalnu adresu z Artisan servera a prihlasis sa ako admin.
+
+--------------------------------------------------
+13. good to know
+--------------------------------------------------
+
+- Laravel route rozhoduje, kam ide request.
+- Controller obsahuje logiku.
+- Model komunikuje s databazou.
+- Blade view zobrazuje strany.
+- PDF sa generuje zo sablony pdf.blade.php.
+- Admin ucet je v .env a seeduje sa do databazy.
+- Verejna registracia je vypnuta.
+- SQLite je lokalna databaza v subore.
+
+--------------------------------------------------
+14. DOKLADNEJSI POPIS PHP SUBOROV
+--------------------------------------------------
+
+14.1 routes/web.php
+Tento subor obsahuje hlavne webove routy.
+Laravel tu rozhoduje, ktora URL sa ma spracovat a aky controller sa ma zavolat.
+Pouziva sa na:
+- zobrazenie stranky
+- odoslanie formulara
+- detail zaznamu
+- editaciu
+- zmazanie
+- export PDF
+
+Je to vstupny bod pre vacsinu webovych poziadaviek.
+
+14.2 routes/auth.php
+Tu sa riesi prihlasovanie a odhlasovanie.
+Laravel Breeze tu poskytuje hotove routy pre login a reset hesla.
+V projekte je registracia vypnuta, takze sa uzivatelia nevytvaraju verejne.
+
+14.3 app/Http/Controllers/ReviewController.php
+Najdolezitejsi business logicky subor.
+Tento controller:
+- nacitava data pre zoznam
+- pripravuje formular
+- kontroluje validaciu
+- uklada do databazy
+- generuje PDF
+- pracuje s admin a user pravami
+
+Je to miesto, kde sa rozhoduje, co aplikacia robi po prijati poziadavky.
+
+14.4 app/Models/Review.php
+Eloquent model pre posudok.
+Zabezpecuje mapovanie medzi PHP objektom a databazovou tabulkou reviews.
+Cez model sa citaju, vytvaraju a upravuju zaznamy.
+
+14.5 app/Models/User.php
+Model pre prihlaseneho pouzivatela.
+Pouziva sa pri autentifikacii a pri vztahu medzi uzivatelom a posudkom.
+Ak je posudok naviazany na autora, je to riesene cez tento model.
+
+14.6 database/migrations/2026_07_16_192103_create_reviews_table.php
+Migracia definuje strukturu tabulky reviews.
+V nej sa presne urcuje, ake stlpce bude databaza mat.
+Je to verzia databazovej struktury v kodu.
+
+14.7 database/seeders/AdminUserSeeder.php
+Seeder vytvori vstupne admin konto.
+Je vhodny na testovanie a prvotne spustenie aplikacie.
+Heslo a email su citane z .env, nie napevno v kode.
+
+14.8 database/seeders/DatabaseSeeder.php
+Hlavny seeder, ktory zavola ostatne seedery.
+Slúzi ako centralne miesto pre naplnenie databazy testovacimi alebo uvodnymi datami.
+
+14.9 config/review.php
+Konfiguracia hodnotenia na jednom mieste.
+Ak sa zmeni zoznam znamok alebo stav originality, uprava sa robi tu a nie na viacerych miestach v kode.
+
+--------------------------------------------------
+15. KDE SA TO BUDE NAJVIAC MENIT V BUDUCNOSTI
+--------------------------------------------------
+
+Ak sa bude projekt dalej upravovat, najcastejsie sa budu menit:
+
+- resources/views/reviews/form.blade.php
+  ked sa zmeni formular
+
+- resources/views/reviews/pdf.blade.php
+  ked sa zmeni PDF vzhlad
+
+- app/Http/Controllers/ReviewController.php
+  ked sa zmeni logika spracovania
+
+- config/review.php
+  ked sa zmenia moznosti hodnotenia
+
+- database/migrations/...create_reviews_table.php
+  ked sa budu pridavat dalsie polia
+
+- routes/web.php
+  ked sa budu pridavat nove stranky alebo akcie
+

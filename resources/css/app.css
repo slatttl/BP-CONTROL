@@ -1,0 +1,268 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+	:root {
+		color-scheme: light;
+	}
+
+	body {
+		background:
+			radial-gradient(circle at 0% 0%, rgba(239, 68, 68, 0.42), transparent 38%),
+			radial-gradient(circle at 100% 10%, rgba(190, 24, 93, 0.3), transparent 35%),
+			radial-gradient(circle at 55% 100%, rgba(225, 29, 72, 0.24), transparent 44%),
+			linear-gradient(165deg, #ffe4ea 0%, #ffcfd9 48%, #ffe7ec 100%);
+		background-color: #ffd5df;
+		background-attachment: fixed;
+		color: #0f172a;
+		text-rendering: optimizeLegibility;
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+	}
+
+	::selection {
+		background: rgba(190, 24, 93, 0.2);
+		color: #0f172a;
+	}
+
+	a,
+	button,
+	input,
+	select,
+	textarea {
+		transition:
+			background-color 160ms ease,
+			border-color 160ms ease,
+			box-shadow 160ms ease,
+			color 160ms ease,
+			transform 160ms ease;
+	}
+
+	input,
+	select,
+	textarea {
+		color: #0f172a;
+	}
+
+	input::placeholder,
+	textarea::placeholder {
+		color: #94a3b8;
+	}
+
+	input:focus,
+	select:focus,
+	textarea:focus {
+		outline: none;
+	}
+
+	table {
+		border-collapse: collapse;
+	}
+}
+
+@layer components {
+	.app-shell {
+		position: relative;
+		overflow-x: hidden;
+	}
+
+	.app-shell::before {
+		content: "";
+		position: fixed;
+		inset: 0;
+		z-index: 0;
+		pointer-events: none;
+		background: linear-gradient(180deg, rgba(255, 215, 224, 0.32), rgba(255, 224, 231, 0.2));
+	}
+
+	.surface-card {
+		border: 1px solid rgba(255, 255, 255, 0.75);
+		background: rgba(255, 255, 255, 0.92);
+		box-shadow:
+			0 18px 38px rgba(15, 23, 42, 0.06),
+			0 4px 10px rgba(15, 23, 42, 0.04);
+		backdrop-filter: blur(12px);
+	}
+
+	.app-glow {
+		position: fixed;
+		z-index: 0;
+		width: 26rem;
+		height: 26rem;
+		border-radius: 9999px;
+		filter: blur(90px);
+		opacity: 0.5;
+		pointer-events: none;
+	}
+
+	.app-glow-left {
+		top: -8rem;
+		left: -8rem;
+		background: rgba(244, 63, 94, 0.25);
+	}
+
+	.app-glow-right {
+		top: 8rem;
+		right: -10rem;
+		background: rgba(239, 68, 68, 0.18);
+	}
+
+	.subtle-grid {
+		background-image:
+			linear-gradient(rgba(244, 63, 94, 0.09) 1px, transparent 1px),
+			linear-gradient(90deg, rgba(244, 63, 94, 0.09) 1px, transparent 1px);
+		background-size: 28px 28px;
+	}
+
+	.landing-body {
+		font-family: "Sora", "Segoe UI", sans-serif;
+		background:
+			radial-gradient(circle at 10% 10%, rgba(251, 113, 133, 0.34), transparent 36%),
+			radial-gradient(circle at 95% 14%, rgba(225, 29, 72, 0.2), transparent 32%),
+			radial-gradient(circle at 55% 95%, rgba(239, 68, 68, 0.16), transparent 40%),
+			linear-gradient(170deg, #fff7f8 0%, #ffe8ed 44%, #fff7f7 100%);
+	}
+
+	.landing-noise {
+		position: fixed;
+		inset: 0;
+		z-index: 0;
+		opacity: 0.18;
+		pointer-events: none;
+		background-image: radial-gradient(rgba(225, 29, 72, 0.35) 0.8px, transparent 0.8px);
+		background-size: 3px 3px;
+		mask-image: linear-gradient(to bottom, transparent 0%, black 16%, black 84%, transparent 100%);
+	}
+
+	.landing-hero-grid {
+		display: grid;
+	}
+
+	.landing-orb {
+		position: fixed;
+		z-index: 0;
+		width: 20rem;
+		height: 20rem;
+		border-radius: 9999px;
+		filter: blur(70px);
+		opacity: 0.35;
+		pointer-events: none;
+	}
+
+	.landing-orb-left {
+		top: -7rem;
+		left: -7rem;
+		background: rgba(225, 29, 72, 0.45);
+	}
+
+	.landing-orb-right {
+		top: 5rem;
+		right: -8rem;
+		background: rgba(244, 63, 94, 0.4);
+	}
+
+	.landing-card {
+		animation: float-up 700ms ease-out;
+	}
+
+	.landing-step {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		border: 1px solid rgba(251, 113, 133, 0.28);
+		background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 241, 242, 0.9));
+		border-radius: 0.875rem;
+		padding: 0.75rem;
+	}
+
+	.landing-step span {
+		display: flex;
+		height: 1.9rem;
+		width: 1.9rem;
+		align-items: center;
+		justify-content: center;
+		border-radius: 9999px;
+		background: #be123c;
+		color: #ffffff;
+		font-size: 0.82rem;
+		font-weight: 700;
+	}
+
+	.landing-step p {
+		font-size: 0.9rem;
+		font-weight: 600;
+		color: #7f1d1d;
+	}
+
+	.landing-metric {
+		border: 1px solid rgba(251, 113, 133, 0.28);
+		background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 241, 242, 0.88));
+		border-radius: 0.875rem;
+		padding: 0.75rem;
+	}
+
+	.landing-metric-value {
+		font-size: 1rem;
+		line-height: 1.25rem;
+		font-weight: 800;
+		color: #9f1239;
+	}
+
+	.landing-metric-label {
+		margin-top: 0.25rem;
+		font-size: 0.78rem;
+		line-height: 1.1rem;
+		color: #881337;
+	}
+}
+
+@layer utilities {
+	/*
+	 * Global red theming for common neutral surfaces used across Blade templates.
+	 * This keeps existing Tailwind classes but shifts visual output to red palette.
+	 */
+	.bg-white {
+		background-color: #fff3f5 !important;
+	}
+
+	.bg-white\/80 {
+		background-color: rgba(255, 243, 245, 0.8) !important;
+	}
+
+	.bg-white\/90 {
+		background-color: rgba(255, 243, 245, 0.9) !important;
+	}
+
+	.bg-slate-50,
+	.bg-slate-50\/90 {
+		background-color: #ffe8ed !important;
+	}
+
+	.bg-slate-100 {
+		background-color: #ffdbe4 !important;
+	}
+
+	.hover\:bg-slate-50:hover,
+	.hover\:bg-slate-50\/60:hover {
+		background-color: #ffe2e9 !important;
+	}
+
+	.border-slate-100,
+	.border-slate-200,
+	.border-slate-200\/70,
+	.border-slate-300 {
+		border-color: #f3b2bf !important;
+	}
+}
+
+@keyframes float-up {
+	0% {
+		opacity: 0;
+		transform: translateY(18px);
+	}
+	100% {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
