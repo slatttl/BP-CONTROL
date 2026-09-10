@@ -1,31 +1,52 @@
 # BP Control
 
-Laravel aplikacia na vyplnanie posudku veduceho bakalarskej prace, spravu evidencie a export do PDF.
+BP Control je webova aplikacia vytvorena v Laraveli. Sluzi na evidenciu a vyplnanie posudkov veduceho bakalarskej prace.
 
-## Co je hotove
+V aplikacii je mozne vytvorit novy posudok, upravit ho, zobrazit jeho detail a ulozit ho vo formate PDF.
 
-- admin prihlasenie bez verejnej registracie
-- formular pre posudok veduceho bakalarskej prace
-- ulozenie do SQLite databazy
-- detail posudku a editacia
-- export viacstranoveho PDF
+## Funkcie aplikacie
 
-## Lokalne spustenie
+- prihlasenie administratora a pouzivatelov
+- vytvorenie posudku bakalarskej prace
+- uprava a zobrazenie posudkov
+- filtrovanie posudkov
+- export posudku do PDF
+- sprava pouzivatelov administratorom
+- ulozenie udajov v SQLite databaze
 
-1. `composer install`
-2. `php artisan key:generate`
-3. `php artisan migrate --seed`
-4. `php artisan serve`
+## Spustenie projektu
 
-Frontend je nastavany bez JavaScriptu runtime a nacitava staticke CSS z `public/css/app.css`. Pri vyvoji staci jeden server (`php artisan serve`).
+V terminali otvor priecinok projektu a spusti:
 
-## Admin konto
+```text
+composer install
+php artisan key:generate
+php artisan migrate --seed
+php artisan serve
+```
+
+Aplikacia bude dostupna na adrese:
+
+```text
+http://127.0.0.1:8000
+```
+
+Projekt pouziva serverove Laravel Blade sablony a na spustenie staci PHP server. JavaScriptovy server nie je potrebny.
+
+## Prihlasovacie udaje
+
+Zakladne administratorske konto:
 
 - email: `admin@bpcontrol.local`
 - heslo: `admin123456`
 
-Tieto hodnoty mozes zmenit v `.env` cez `ADMIN_NAME`, `ADMIN_EMAIL` a `ADMIN_PASSWORD`, potom spusti `php artisan db:seed --class=AdminUserSeeder`.
+Udaje je mozne zmenit v subore `.env` pomocou premennych `ADMIN_NAME`, `ADMIN_EMAIL` a `ADMIN_PASSWORD`.
 
-## Dalsie upravy
+## Pouzite technologie
 
-Najblizsi logicky krok je doladit PDF sablonu tak, aby sa co najviac podobala presnemu skolskemu formularu, alebo pridat dalsie typy posudkov pre oponenta.
+- PHP
+- Laravel
+- Blade
+- SQLite
+- Tailwind CSS
+- Dompdf
