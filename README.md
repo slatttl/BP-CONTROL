@@ -15,9 +15,9 @@ Laravel aplikacia na vyplnanie posudku veduceho bakalarskej prace, spravu eviden
 1. `composer install`
 2. `php artisan key:generate`
 3. `php artisan migrate --seed`
-4. `"C:\Program Files\nodejs\npm.cmd" install`
-5. `"C:\Program Files\nodejs\npm.cmd" run build`
-6. `php artisan serve`
+4. `php artisan serve`
+
+Frontend je nastavany bez JavaScriptu runtime a nacitava staticke CSS z `public/css/app.css`. Pri vyvoji staci jeden server (`php artisan serve`).
 
 ## Admin konto
 

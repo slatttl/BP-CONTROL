@@ -11,8 +11,7 @@
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=sora:400,500,600,700,800&display=swap" rel="stylesheet" />
 
-        <!-- Scripts -->
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
+        <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     </head>
     <body class="app-shell font-sans text-gray-900 antialiased">
         <div class="min-h-screen flex flex-col sm:justify-center items-center px-4 pt-8 sm:pt-0">
