@@ -117,7 +117,7 @@ class ReviewTemplateTest extends TestCase
     {
         $this->actingAs(User::factory()->create())
             ->post(route('reviews.store'), $this->payload('master', 'supervisor', [
-                'study_program' => config('review.thesis_types.bachelor.programs.0'),
+                'study_program' => 'Mechatronika',
             ]))
             ->assertSessionHasErrors('study_program');
     }

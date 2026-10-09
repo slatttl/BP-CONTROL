@@ -1,11 +1,3 @@
-                'Priemyselná informatika, automatizácia a robotika',
-                'Počítačová podpora návrhu a výroby',
-                'Smart výrobné inžinierstvo',
-                'Priemyselné inžinierstvo a manažment',
-                'Bezpečnostný a environmentálny manažment',
-                'Materiálové inžinierstvo',
-                'Materials Engineering and Technologies',
-                'Automatizácia a informatizácia procesov v priemysle',
 <?php
 
 return [
@@ -69,6 +61,13 @@ return [
             'author_genitive' => 'diplomanta',
             'author_name_label' => 'Meno diplomanta',
             'programs' => [
+                'Priemyselná informatika, automatizácia a robotika',
+                'Počítačová podpora návrhu a výroby',
+                'Smart výrobné inžinierstvo',
+                'Priemyselné inžinierstvo a manažment',
+                'Bezpečnostný a environmentálny manažment',
+                'Materiálové inžinierstvo',
+                'Materials Engineering and Technologies',
                 'Automatizácia a informatizácia procesov v priemysle',
             ],
         ],
