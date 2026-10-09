@@ -49,6 +49,14 @@ http://127.0.0.1:8000
 
 Projekt pouziva serverove Laravel Blade sablony a na spustenie staci PHP server. JavaScriptovy server nie je potrebny.
 
+## Aktualizacia existujucej instalacie
+
+Po stiahnuti novej verzie spusti migracie, inak aplikacia hlasi chybu o chybajucom stlpci `thesis_type`:
+
+```text
+php artisan migrate
+```
+
 ## Prihlasovacie udaje
 
 Zakladne administratorske konto:
