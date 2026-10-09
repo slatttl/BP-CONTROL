@@ -3,7 +3,7 @@
         <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
                 <p class="text-sm font-semibold uppercase tracking-[0.18em] text-rose-700">BP Control</p>
-                <h2 class="mt-1 text-2xl font-semibold leading-tight text-slate-900">Evidencia posudkov bakalárskej práce</h2>
+                <h2 class="mt-1 text-2xl font-semibold leading-tight text-slate-900">Evidencia posudkov záverečných prác</h2>
                 <p class="mt-2 max-w-3xl text-sm text-slate-600">Správa hodnotení, filtrovanie, export do PDF a rýchle vytváranie šablón z existujúcich posudkov.</p>
             </div>
             <div class="flex flex-wrap gap-3">
@@ -98,6 +98,24 @@
                         </select>
                     </div>
                     <div>
+                        <label for="thesis_type" class="text-sm font-medium text-slate-700">Typ práce</label>
+                        <select id="thesis_type" name="thesis_type" class="mt-2 block w-full rounded-2xl border-slate-200 bg-white shadow-sm focus:border-slate-500 focus:ring-slate-500">
+                            <option value="">Všetky typy</option>
+                            @foreach ($thesisTypes as $value => $config)
+                                <option value="{{ $value }}" @selected($selectedThesisType === $value)>{{ $config['label'] }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label for="review_role" class="text-sm font-medium text-slate-700">Rola</label>
+                        <select id="review_role" name="review_role" class="mt-2 block w-full rounded-2xl border-slate-200 bg-white shadow-sm focus:border-slate-500 focus:ring-slate-500">
+                            <option value="">Všetky role</option>
+                            @foreach ($roles as $value => $config)
+                                <option value="{{ $value }}" @selected($selectedReviewRole === $value)>{{ $config['label'] }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
                         <label for="date_from" class="text-sm font-medium text-slate-700">Dátum od</label>
                         <input type="date" id="date_from" name="date_from" value="{{ $selectedDateFrom }}" class="mt-2 block w-full rounded-2xl border-slate-200 bg-white shadow-sm focus:border-slate-500 focus:ring-slate-500">
                     </div>
@@ -151,6 +169,7 @@
                                 @if ($isAdmin && $selectedScope === 'all')
                                     <th class="px-4 py-3 text-left font-semibold">Vlastník</th>
                                 @endif
+                                <th class="px-4 py-3 text-left font-semibold">Typ / rola</th>
                                 <th class="px-4 py-3 text-left font-semibold">Študijný program</th>
                                 <th class="px-4 py-3 text-left font-semibold">Rok</th>
                                 <th class="px-4 py-3 text-left font-semibold">Známka</th>
@@ -174,6 +193,7 @@
                                             <div class="text-xs text-slate-500">{{ $review->user?->email }}</div>
                                         </td>
                                     @endif
+                                    <td class="px-4 py-4 text-slate-600">{{ $review->thesisConfig()['short'] }} / {{ $review->roleConfig()['label'] }}</td>
                                     <td class="px-4 py-4 text-slate-600">{{ $review->study_program }}</td>
                                     <td class="px-4 py-4 text-slate-600">{{ $review->academic_year }}</td>
                                     <td class="px-4 py-4"><span class="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">{{ $review->final_grade }}</span></td>
@@ -192,7 +212,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="{{ $isAdmin && $selectedScope === 'all' ? 8 : 7 }}" class="px-4 py-12 text-center text-slate-500">Zatiaľ neexistuje žiadny posudok pre zvolený filter.</td>
+                                    <td colspan="{{ $isAdmin && $selectedScope === 'all' ? 9 : 8 }}" class="px-4 py-12 text-center text-slate-500">Zatiaľ neexistuje žiadny posudok pre zvolený filter.</td>
                                 </tr>
                             @endforelse
                         </tbody>

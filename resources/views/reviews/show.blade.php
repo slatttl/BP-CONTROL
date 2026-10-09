@@ -1,39 +1,18 @@
 @php
-    $sections = [
-        'Aktivita studenta' => [
-            'activity_independence' => 'Samostatnost',
-            'activity_creativity' => 'Tvorivost',
-        ],
-        'Kvalita riesenia' => [
-            'quality_overall_concept' => 'Celkova koncepcia prace',
-            'quality_topic_completeness' => 'Uplnost spracovania temy',
-            'quality_topic_quality' => 'Kvalita spracovania temy',
-            'quality_methods' => 'Pouzite metody riesenia',
-            'quality_complexity' => 'Algoritmicka narocnost a pracnost riesenia',
-            'quality_practicality' => 'Prakticka aplikovatelnost prace',
-        ],
-        'Praca s literaturou' => [
-            'literature_sorting' => 'Triedenie a hodnotenie pramenov',
-            'literature_usage' => 'Vyuzitie poznatkov z literatury a praxe',
-            'literature_conclusions' => 'Vyvodzovanie vlastnych zaverov z literarnych pramenov',
-        ],
-        'Formalna uroven prace' => [
-            'formal_logic' => 'Logika usporiadania prace',
-            'formal_style' => 'Stylizacia textu',
-            'formal_terminology' => 'Pouzita terminologia',
-            'formal_graphics' => 'Graficka realizacia',
-        ],
-    ];
+    $typeConfig = $review->thesisConfig();
+    $roleConfig = $review->roleConfig();
+    $sections = [];
+    $sectionComments = [];
 
-    $sectionComments = [
-        'Aktivita studenta' => 'activity_comment',
-        'Kvalita riesenia' => 'quality_comment',
-        'Praca s literaturou' => 'literature_comment',
-        'Formalna uroven prace' => 'formal_comment',
-    ];
-@endphp
-
-<x-app-layout>
+    foreach (array_keys(config('review.role_blocks.'.($review->review_role ?: 'supervisor'))) as $blockName) {
+        $block = config("review.blocks.{$blockName}");
+        $title = str_replace('{author}', $typeConfig['author_genitive'], $block['title']);
+        $sections[$title] = collect($block['criteria'])
+            ->map(fn ($label) => is_array($label) ? $label[$review->thesis_type ?: 'bachelor'] : $label)
+            ->all();
+        $sectionComments[$title] = $block['comment'];
+    }
+@endphp<x-app-layout>
     <x-slot name="header">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
@@ -77,7 +56,11 @@
                     <dl class="mt-5 grid gap-4 sm:grid-cols-2">
                         <div class="rounded-2xl bg-slate-50 p-4"><dt class="text-sm text-slate-500">Akademicky rok</dt><dd class="mt-1 font-semibold text-slate-900">{{ $review->academic_year }}</dd></div>
                         <div class="rounded-2xl bg-slate-50 p-4"><dt class="text-sm text-slate-500">Studijny program</dt><dd class="mt-1 font-semibold text-slate-900">{{ $review->study_program }}</dd></div>
+                        <div class="rounded-2xl bg-slate-50 p-4"><dt class="text-sm text-slate-500">Typ a rola</dt><dd class="mt-1 font-semibold text-slate-900">{{ $typeConfig['label'] }} / {{ $roleConfig['label'] }}</dd></div>
                         <div class="rounded-2xl bg-slate-50 p-4"><dt class="text-sm text-slate-500">Veduci</dt><dd class="mt-1 font-semibold text-slate-900">{{ $review->supervisor_name }}</dd></div>
+                        @if ($review->isOpponent())
+                            <div class="rounded-2xl bg-slate-50 p-4"><dt class="text-sm text-slate-500">Oponent</dt><dd class="mt-1 font-semibold text-slate-900">{{ $review->opponent_name }}</dd></div>
+                        @endif
                         <div class="rounded-2xl bg-slate-50 p-4"><dt class="text-sm text-slate-500">Miesto a datum</dt><dd class="mt-1 font-semibold text-slate-900">{{ $review->place }}, {{ $review->review_date?->format('d.m.Y') }}</dd></div>
                     </dl>
                 </div>
@@ -85,7 +68,7 @@
                     <h3 class="text-lg font-semibold text-slate-900">Zaver</h3>
                     <div class="mt-5 space-y-4">
                         <div class="rounded-2xl bg-slate-50 p-4"><p class="text-sm text-slate-500">Odporucenie</p><p class="mt-1 text-lg font-semibold text-slate-900">{{ $recommendations[$review->final_recommendation] ?? $review->final_recommendation }}</p></div>
-                        <div class="rounded-2xl bg-slate-50 p-4"><p class="text-sm text-slate-500">Vysledna znamka</p><p class="mt-1 text-lg font-semibold text-slate-900">{{ $review->final_grade }} - {{ $grades[$review->final_grade] ?? '' }}</p></div>
+                        <div class="rounded-2xl bg-slate-50 p-4"><p class="text-sm text-slate-500">Vysledna znamka</p><p class="mt-1 text-lg font-semibold text-slate-900">{{ $review->final_grade }} - {{ $grades[$review->final_grade] ?? '' }}@if ($review->final_score !== null) (skore {{ number_format((float) $review->final_score, 2, ',', '') }})@endif</p></div>
                         <div class="rounded-2xl bg-slate-50 p-4"><p class="text-sm text-slate-500">Originalita CRZP</p><p class="mt-1 font-semibold text-slate-900">{{ number_format((float) $review->originality_percentage, 2, ',', ' ') }} % / {{ $originalityStatuses[$review->originality_status] ?? $review->originality_status }}</p></div>
                     </div>
                 </div>
