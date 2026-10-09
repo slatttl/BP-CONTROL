@@ -12,7 +12,7 @@
         <tbody>
             @foreach ($block['criteria'] as $field => $label)
                 <tr>
-                    <td class="crit-col">{{ is_array($label) ? $label[$type] : $label }}:</td>
+                    <td class="crit-col">{{ \App\Support\CriterionLabel::resolve($label, $type, $review->review_role) }}:</td>
                     @foreach ($grades as $code => $gradeLabel)
                         <td class="grade-col"><span class="tick">{{ $review->{$field} === $code ? 'X' : '' }}</span></td>
                     @endforeach

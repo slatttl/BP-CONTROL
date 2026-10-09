@@ -16,6 +16,8 @@ Format vychadza z [Keep a Changelog](https://keepachangelog.com/) a projekt dodr
 - Akademicky rok sa pocita z datumu posudku (od septembra).
 - Meno veduceho/oponenta sa preberie z prihlaseneho pouzivatela.
 - PDF prepracovane podla vzoroveho posudku (3 strany).
+- DP veduci: kriteria bloku Kvalita riesenia podla vzoru (Pouzite metody + Aplikacia inzinierskych metod); popisky kriterii sa riadia typom prace a rolou (CriterionLabel).
+- Pridane testy vypoctu znamky podla vzorcov z excelov (oponent aj veduci).
 
 ### Removed
 - Rucny vyber znamky/odporucania a vyhlasenie autora z formulara.

@@ -100,4 +100,32 @@ class GradeCalculatorTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         (new GradeCalculator)->calculate('supervisor', []);
     }
+
+    public function test_mixed_opponent_marks_match_the_excel_formula(): void
+    {
+        // quality (1+3+4+4+4+3)/6, literature (3+4+3)/3, formal (2+3+4+3)/4
+        $grades = $this->grades('A', [
+            'quality_topic_completeness' => 'C', 'quality_topic_quality' => 'D', 'quality_methods' => 'D',
+            'quality_complexity' => 'D', 'quality_practicality' => 'C',
+            'literature_sorting' => 'C', 'literature_usage' => 'D', 'literature_conclusions' => 'C',
+            'formal_logic' => 'B', 'formal_style' => 'C', 'formal_terminology' => 'D', 'formal_graphics' => 'C',
+        ]);
+        $result = (new GradeCalculator)->calculate('opponent', $grades);
+
+        $this->assertEqualsWithDelta(0.65 * (19 / 6) + 0.20 * (10 / 3) + 0.15 * 3, $result['score'], 0.0001);
+        $this->assertSame('C', $result['letter']);
+    }
+
+    public function test_mixed_supervisor_marks_match_the_excel_formula(): void
+    {
+        // activity 1, quality (1+2+2+1+1+1)/6, literature (2+1+1)/3, formal (1+2+1+1)/4
+        $grades = $this->grades('A', [
+            'quality_topic_completeness' => 'B', 'quality_topic_quality' => 'B',
+            'literature_sorting' => 'B', 'formal_style' => 'B',
+        ]);
+        $result = (new GradeCalculator)->calculate('supervisor', $grades);
+
+        $this->assertEqualsWithDelta(0.10 + 0.65 * (4 / 3) + 0.15 * (4 / 3) + 0.10 * 1.25, $result['score'], 0.0001);
+        $this->assertSame('A', $result['letter']);
+    }
 }
