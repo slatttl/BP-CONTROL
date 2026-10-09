@@ -2,14 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Review;
-use Illuminate\Http\Request;
-use Illuminate\Http\RedirectResponse;
+use App\Models\ReviewDraft;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
-use Illuminate\Support\Str;
+use RuntimeException;
+use ZipArchive;
 
 class ReviewController extends Controller
 {
@@ -61,6 +65,13 @@ class ReviewController extends Controller
 
         return view('reviews.index', [
             'reviews' => $reviewsQuery->latest()->paginate(10)->withQueryString(),
+            'drafts' => ReviewDraft::query()
+                ->where('user_id', $user->id)
+                ->where(function (Builder $query) {
+                    $query->where('draft_key', 'new')->orWhereNotNull('review_id');
+                })
+                ->latest('updated_at')
+                ->get(),
             'grades' => config('review.grades'),
             'selectedGrade' => $selectedGrade,
             'totalReviews' => (clone $baseQuery)->count(),
@@ -85,9 +96,17 @@ class ReviewController extends Controller
         ]);
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
-        return view('reviews.form', $this->formData(new Review()));
+        $review = new Review;
+        $draft = ReviewDraft::query()
+            ->where('user_id', $request->user()->id)
+            ->where('draft_key', 'new')
+            ->first();
+
+        $review->fill($draft?->payload ?? []);
+
+        return view('reviews.form', $this->formData($review, $draft));
     }
 
     public function store(Request $request): RedirectResponse
@@ -96,6 +115,7 @@ class ReviewController extends Controller
             ...$this->validatedData($request),
             'user_id' => $request->user()->id,
         ]);
+        $this->deleteDraft($request, 'new');
 
         return redirect()
             ->route('reviews.show', $review)
@@ -117,7 +137,16 @@ class ReviewController extends Controller
     {
         $this->authorizeReview($request, $review);
 
-        return view('reviews.form', $this->formData($review));
+        $draft = ReviewDraft::query()
+            ->where('user_id', $request->user()->id)
+            ->where('draft_key', 'review:'.$review->id)
+            ->first();
+
+        if ($draft) {
+            $review->fill($draft->payload);
+        }
+
+        return view('reviews.form', $this->formData($review, $draft));
     }
 
     public function update(Request $request, Review $review): RedirectResponse
@@ -125,6 +154,7 @@ class ReviewController extends Controller
         $this->authorizeReview($request, $review);
 
         $review->update($this->validatedData($request));
+        $this->deleteDraft($request, 'review:'.$review->id);
 
         return redirect()
             ->route('reviews.show', $review)
@@ -139,6 +169,7 @@ class ReviewController extends Controller
     {
         $this->authorizeReview($request, $review);
 
+        ReviewDraft::query()->where('review_id', $review->id)->delete();
         $review->delete();
 
         return redirect()
@@ -180,15 +211,210 @@ class ReviewController extends Controller
             ->download($fileName);
     }
 
-    private function formData(Review $review): array
+    public function saveDraft(Request $request, ?Review $review = null): JsonResponse
+    {
+        if ($review) {
+            $this->authorizeReview($request, $review);
+            $draftKey = 'review:'.$review->id;
+        } else {
+            $draftKey = 'new';
+        }
+
+        $payload = $request->validate($this->draftRules());
+        $draft = ReviewDraft::query()->updateOrCreate(
+            [
+                'user_id' => $request->user()->id,
+                'draft_key' => $draftKey,
+            ],
+            [
+                'review_id' => $review?->id,
+                'payload' => $payload,
+            ],
+        );
+
+        return response()->json([
+            'saved_at' => $draft->updated_at->toIso8601String(),
+        ]);
+    }
+
+    public function checkDuplicate(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'student_name' => ['required', 'string', 'max:255'],
+            'academic_year' => ['required', 'string', 'max:20'],
+            'review_id' => ['nullable', 'integer'],
+        ]);
+
+        $query = Review::query()
+            ->where('academic_year', trim($data['academic_year']));
+
+        if (! $request->user()->isAdmin()) {
+            $query->where('user_id', $request->user()->id);
+        }
+
+        if (! empty($data['review_id'])) {
+            $currentReview = Review::query()->findOrFail($data['review_id']);
+            $this->authorizeReview($request, $currentReview);
+            $query->where('id', '!=', $currentReview->id);
+        }
+
+        $studentName = mb_strtolower(trim($data['student_name']));
+        $duplicate = $query->pluck('student_name')
+            ->contains(fn (string $name) => mb_strtolower(trim($name)) === $studentName);
+
+        return response()->json(['duplicate' => $duplicate]);
+    }
+
+    public function bulkCsv(Request $request)
+    {
+        $reviews = $this->selectedReviews($request);
+        $fileName = 'posudky-'.now()->format('Ymd-His').'.csv';
+
+        return response()->streamDownload(function () use ($reviews) {
+            $output = fopen('php://output', 'w');
+            fwrite($output, "\xEF\xBB\xBF");
+            fputcsv($output, ['Meno študenta', 'Názov práce', 'Študijný program', 'Akademický rok', 'Známka', 'Dátum'], ';', '"', '\\');
+
+            foreach ($reviews as $review) {
+                fputcsv($output, [
+                    $this->safeCsvValue($review->student_name),
+                    $this->safeCsvValue($review->thesis_title),
+                    $this->safeCsvValue($review->study_program),
+                    $this->safeCsvValue($review->academic_year),
+                    $review->final_grade,
+                    $review->review_date?->format('d.m.Y'),
+                ], ';', '"', '\\');
+            }
+
+            fclose($output);
+        }, $fileName, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    public function bulkPdf(Request $request)
+    {
+        $reviews = $this->selectedReviews($request);
+        $archivePath = tempnam(sys_get_temp_dir(), 'bp-reviews-');
+
+        if ($archivePath === false) {
+            throw new RuntimeException('Nepodarilo sa vytvoriť dočasný súbor pre ZIP archív.');
+        }
+
+        $archive = new ZipArchive;
+        $result = $archive->open($archivePath, ZipArchive::OVERWRITE);
+
+        if ($result !== true) {
+            unlink($archivePath);
+            throw new RuntimeException('Nepodarilo sa otvoriť ZIP archív (kód '.$result.').');
+        }
+
+        try {
+            foreach ($reviews as $review) {
+                $fileName = Str::slug($review->student_name ?: 'posudok').'-'.$review->id.'-posudok.pdf';
+                $pdf = Pdf::loadView('reviews.pdf', $this->formData($review))
+                    ->setPaper('a4')
+                    ->output();
+
+                if (! $archive->addFromString($fileName, $pdf)) {
+                    throw new RuntimeException('Nepodarilo sa pridať PDF posudku do ZIP archívu.');
+                }
+            }
+        } catch (\Throwable $exception) {
+            $archive->close();
+            unlink($archivePath);
+            throw $exception;
+        }
+
+        if (! $archive->close()) {
+            unlink($archivePath);
+            throw new RuntimeException('Nepodarilo sa dokončiť ZIP archív.');
+        }
+
+        return response()->download($archivePath, 'posudky-'.now()->format('Ymd-His').'.zip')
+            ->deleteFileAfterSend(true);
+    }
+
+    private function safeCsvValue(string $value): string
+    {
+        return preg_match('/^\s*[=+\-@]/u', $value) === 1 ? "'".$value : $value;
+    }
+
+    private function selectedReviews(Request $request)
+    {
+        $data = $request->validate([
+            'review_ids' => ['required', 'array', 'min:1', 'max:50'],
+            'review_ids.*' => ['required', 'integer', 'distinct', 'exists:reviews,id'],
+        ]);
+        $query = Review::query()->whereKey($data['review_ids']);
+
+        if (! $request->user()->isAdmin()) {
+            $query->where('user_id', $request->user()->id);
+        }
+
+        $reviews = $query->get();
+        abort_unless($reviews->count() === count($data['review_ids']), 403);
+
+        return $reviews;
+    }
+
+    private function deleteDraft(Request $request, string $draftKey): void
+    {
+        ReviewDraft::query()
+            ->where('user_id', $request->user()->id)
+            ->where('draft_key', $draftKey)
+            ->delete();
+    }
+
+    private function formData(Review $review, ?ReviewDraft $draft = null): array
     {
         return [
             'review' => $review,
+            'draft' => $draft,
+            'draftSaveUrl' => $review->exists
+                ? route('reviews.draft.update', $review)
+                : route('reviews.draft.store'),
+            'duplicateCheckUrl' => route('reviews.duplicate-check'),
             'isAdmin' => auth()->user()?->isAdmin() ?? false,
             'grades' => config('review.grades'),
             'recommendations' => config('review.recommendations'),
             'originalityStatuses' => config('review.originality_statuses'),
         ];
+    }
+
+    private function draftRules(): array
+    {
+        $gradeValues = array_keys(config('review.grades'));
+        $rules = [
+            'academic_year' => ['sometimes', 'nullable', 'string', 'max:20'],
+            'student_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'study_program' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'thesis_title' => ['sometimes', 'nullable', 'string', 'max:10000'],
+            'supervisor_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'place' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'review_date' => ['sometimes', 'nullable', 'date'],
+            'originality_percentage' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:100'],
+            'originality_status' => ['sometimes', 'nullable', Rule::in(array_keys(config('review.originality_statuses')))],
+            'final_recommendation' => ['sometimes', 'nullable', Rule::in(array_keys(config('review.recommendations')))],
+            'final_grade' => ['sometimes', 'nullable', Rule::in($gradeValues)],
+        ];
+
+        foreach ([
+            'activity_independence', 'activity_creativity', 'quality_overall_concept',
+            'quality_topic_completeness', 'quality_topic_quality', 'quality_methods',
+            'quality_complexity', 'quality_practicality', 'literature_sorting',
+            'literature_usage', 'literature_conclusions', 'formal_logic', 'formal_style',
+            'formal_terminology', 'formal_graphics',
+        ] as $field) {
+            $rules[$field] = ['sometimes', 'nullable', Rule::in($gradeValues)];
+        }
+
+        foreach ([
+            'activity_comment', 'quality_comment', 'literature_comment', 'formal_comment',
+            'questions', 'originality_comment', 'author_statement',
+        ] as $field) {
+            $rules[$field] = ['sometimes', 'nullable', 'string', 'max:50000'];
+        }
+
+        return $rules;
     }
 
     private function validatedData(Request $request): array
