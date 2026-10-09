@@ -145,9 +145,11 @@ class ReviewEfficiencyFeaturesTest extends TestCase
     {
         return [
             'user_id' => $user->id,
+            'thesis_type' => 'bachelor',
+            'review_role' => 'supervisor',
             'academic_year' => '2026/2027',
             'student_name' => 'Jana Nováková',
-            'study_program' => 'Informatika',
+            'study_program' => 'Aplikovaná informatika a automatizácia v priemysle',
             'thesis_title' => 'Efektívne spracovanie dát',
             'supervisor_name' => 'Vedúci práce',
             'place' => 'Trnava',
