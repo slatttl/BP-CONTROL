@@ -16,13 +16,15 @@
 <!DOCTYPE html>
 <html lang="sk">
 <head>
-    <meta charset="utf-8">    <style>
-        @page { size: A4; margin: 5.5mm 6mm 6.5mm 6mm; }
+    <meta charset="utf-8">
+    <style>
+        @page { size: A4; margin: 0; }
         * { box-sizing: border-box; }
         html, body { margin: 0; padding: 0; }
         body { font-family: DejaVu Sans, sans-serif; font-size: 8.7pt; line-height: 1.08; color: #000; }
         p, table, h1, h2, h3 { margin: 0; }
 
+        .page, .page-last { padding: 10mm 17mm 6mm 17mm; }
         .page { page-break-after: always; }
         .page:last-child { page-break-after: auto; }
 
@@ -75,6 +77,9 @@
             font-size: 8.8pt;
             line-height: 1.1;
         }
+        .field-box { font-weight: 700; font-style: italic; }
+        .plain .field-box { border: 0; padding-left: 0; min-height: 0; }
+        .plain .value-row { margin-bottom: 6mm; }
         .field-box.title-box {
             min-height: 11mm;
         }
@@ -138,17 +143,17 @@
             border-left: 0.2mm solid #000;
             border-right: 0.2mm solid #000;
             border-bottom: 0.2mm solid #000;
-            min-height: 28mm;
+            min-height: 24mm;
             padding: 0.9mm 1.2mm 1.2mm;
             white-space: pre-line;
             font-size: 8.5pt;
             line-height: 1.12;
         }
         .comment-block.large {
-            min-height: 49mm;
+            min-height: 44mm;
         }
         .comment-block.small {
-            min-height: 24mm;
+            min-height: 18mm;
         }
         .comment-label {
             font-weight: 400;
@@ -186,7 +191,7 @@
         }
         .questions-box {
             border: 0.2mm solid #000;
-            min-height: 60mm;
+            min-height: 30mm;
             padding: 1.2mm 1.4mm;
             white-space: pre-line;
             background: #d8f6f7;
@@ -197,7 +202,7 @@
             width: 100%;
             border-collapse: collapse;
             table-layout: fixed;
-            margin-bottom: 8mm;
+            margin-bottom: 5mm;
         }
         .protocol-table td {
             border: 0.2mm solid #000;
@@ -213,7 +218,7 @@
         .footer-row {
             width: 100%;
             clear: both;
-            margin-top: 6mm;
+            margin-top: 3mm;
         }
         .footer-left {
             float: left;
@@ -236,14 +241,14 @@
             margin: 0 0 6mm;
         }
         .grade-summary {
-            margin-top: 10mm;
+            margin-top: 14mm;
             text-align: center;
-            font-size: 10pt;
+            font-size: 11pt;
         }
         .grade-summary strong {
             display: block;
             margin-top: 2mm;
-            font-size: 14.5pt;
+            font-size: 16pt;
         }
 
         .clearfix { clear: both; }
@@ -295,10 +300,10 @@
         @include('reviews.partials.pdf-footer')
     </div>
 
-    <div>
+    <div class="page-last">
         <div class="final-title">{{ $ratingTitle }}</div>
         <div class="year">Akademický rok: {{ $review->academic_year }}</div>
-        @include('reviews.partials.pdf-header')
+        <div class="plain">@include('reviews.partials.pdf-header')</div>
 
         <div class="grade-summary">
             {{ ucfirst($typeConfig['accusative']) }} hodnotím známkou
