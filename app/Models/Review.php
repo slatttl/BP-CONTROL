@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Model;
@@ -12,6 +13,9 @@ class Review extends Model
 
     protected $fillable = [
         'user_id',
+        'thesis_type',
+        'review_role',
+        'opponent_name',
         'academic_year',
         'student_name',
         'study_program',
@@ -44,6 +48,7 @@ class Review extends Model
         'questions',
         'originality_comment',
         'final_grade',
+        'final_score',
         'author_statement',
     ];
 
@@ -52,7 +57,31 @@ class Review extends Model
         return [
             'review_date' => 'date',
             'originality_percentage' => 'decimal:2',
+            'final_score' => 'decimal:3',
         ];
+    }
+
+    /** Academic year ("2025/2026") the given date belongs to; the year starts in September. */
+    public static function academicYearFor(CarbonInterface $date): string
+    {
+        $startYear = $date->month >= config('review.academic_year_start_month') ? $date->year : $date->year - 1;
+
+        return $startYear.'/'.($startYear + 1);
+    }
+
+    public function isOpponent(): bool
+    {
+        return $this->review_role === 'opponent';
+    }
+
+    public function thesisConfig(): array
+    {
+        return config('review.thesis_types.'.($this->thesis_type ?: 'bachelor'));
+    }
+
+    public function roleConfig(): array
+    {
+        return config('review.roles.'.($this->review_role ?: 'supervisor'));
     }
 
     public function user(): BelongsTo
