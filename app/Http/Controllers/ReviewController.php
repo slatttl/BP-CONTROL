@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Review;
 use App\Models\ReviewDraft;
+use App\Services\GradeCalculator;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -26,6 +29,8 @@ class ReviewController extends Controller
         $search = trim($request->string('q')->toString());
         $academicYear = trim($request->string('academic_year')->toString());
         $studyProgram = trim($request->string('study_program')->toString());
+        $thesisType = $request->string('thesis_type')->toString();
+        $reviewRole = $request->string('review_role')->toString();
         $dateFrom = $request->string('date_from')->toString();
         $dateTo = $request->string('date_to')->toString();
         $selectedScope = $isAdmin && $request->string('scope')->toString() === 'all' ? 'all' : 'mine';
@@ -33,6 +38,9 @@ class ReviewController extends Controller
         if (! in_array($selectedGrade, $gradeValues, true)) {
             $selectedGrade = null;
         }
+
+        $thesisType = array_key_exists($thesisType, config('review.thesis_types')) ? $thesisType : null;
+        $reviewRole = array_key_exists($reviewRole, config('review.roles')) ? $reviewRole : null;
 
         if (! preg_match('/^\d{4}\/\d{4}$/', $academicYear)) {
             $academicYear = null;
@@ -54,6 +62,8 @@ class ReviewController extends Controller
             ->when($selectedGrade, fn ($query, $grade) => $query->where('final_grade', $grade))
             ->when($academicYear, fn ($query, $value) => $query->where('academic_year', $value))
             ->when($studyProgram, fn ($query, $value) => $query->where('study_program', $value))
+            ->when($thesisType, fn ($query, $value) => $query->where('thesis_type', $value))
+            ->when($reviewRole, fn ($query, $value) => $query->where('review_role', $value))
             ->when($dateFrom, fn ($query, $value) => $query->whereDate('review_date', '>=', $value))
             ->when($dateTo, fn ($query, $value) => $query->whereDate('review_date', '<=', $value))
             ->when($search !== '', function ($query) use ($search) {
@@ -80,6 +90,10 @@ class ReviewController extends Controller
             'selectedScope' => $selectedScope,
             'selectedAcademicYear' => $academicYear,
             'selectedStudyProgram' => $studyProgram,
+            'selectedThesisType' => $thesisType,
+            'selectedReviewRole' => $reviewRole,
+            'thesisTypes' => config('review.thesis_types'),
+            'roles' => config('review.roles'),
             'selectedDateFrom' => $dateFrom,
             'selectedDateTo' => $dateTo,
             'search' => $search,
@@ -112,7 +126,7 @@ class ReviewController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $review = Review::create([
-            ...$this->validatedData($request),
+            ...$this->reviewAttributes($request),
             'user_id' => $request->user()->id,
         ]);
         $this->deleteDraft($request, 'new');
@@ -153,7 +167,7 @@ class ReviewController extends Controller
     {
         $this->authorizeReview($request, $review);
 
-        $review->update($this->validatedData($request));
+        $review->update($this->reviewAttributes($request, $review));
         $this->deleteDraft($request, 'review:'.$review->id);
 
         return redirect()
@@ -273,15 +287,18 @@ class ReviewController extends Controller
         return response()->streamDownload(function () use ($reviews) {
             $output = fopen('php://output', 'w');
             fwrite($output, "\xEF\xBB\xBF");
-            fputcsv($output, ['Meno študenta', 'Názov práce', 'Študijný program', 'Akademický rok', 'Známka', 'Dátum'], ';', '"', '\\');
+            fputcsv($output, ['Meno študenta', 'Názov práce', 'Typ práce', 'Rola', 'Študijný program', 'Akademický rok', 'Známka', 'Skóre', 'Dátum'], ';', '"', '\\');
 
             foreach ($reviews as $review) {
                 fputcsv($output, [
                     $this->safeCsvValue($review->student_name),
                     $this->safeCsvValue($review->thesis_title),
+                    $review->thesisConfig()['short'],
+                    $review->roleConfig()['label'],
                     $this->safeCsvValue($review->study_program),
                     $this->safeCsvValue($review->academic_year),
                     $review->final_grade,
+                    $review->final_score !== null ? number_format((float) $review->final_score, 2, ',', '') : '',
                     $review->review_date?->format('d.m.Y'),
                 ], ';', '"', '\\');
             }
@@ -375,8 +392,14 @@ class ReviewController extends Controller
             'duplicateCheckUrl' => route('reviews.duplicate-check'),
             'isAdmin' => auth()->user()?->isAdmin() ?? false,
             'grades' => config('review.grades'),
+            'gradeAdverbs' => config('review.grade_adverbs'),
             'recommendations' => config('review.recommendations'),
             'originalityStatuses' => config('review.originality_statuses'),
+            'thesisTypes' => config('review.thesis_types'),
+            'roles' => config('review.roles'),
+            'blocks' => config('review.blocks'),
+            'roleBlocks' => config('review.role_blocks'),
+            'ownerName' => ($review->user ?? auth()->user())?->name,
         ];
     }
 
@@ -384,7 +407,8 @@ class ReviewController extends Controller
     {
         $gradeValues = array_keys(config('review.grades'));
         $rules = [
-            'academic_year' => ['sometimes', 'nullable', 'string', 'max:20'],
+            'thesis_type' => ['sometimes', 'nullable', Rule::in(array_keys(config('review.thesis_types')))],
+            'review_role' => ['sometimes', 'nullable', Rule::in(array_keys(config('review.roles')))],
             'student_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'study_program' => ['sometimes', 'nullable', 'string', 'max:255'],
             'thesis_title' => ['sometimes', 'nullable', 'string', 'max:10000'],
@@ -393,71 +417,87 @@ class ReviewController extends Controller
             'review_date' => ['sometimes', 'nullable', 'date'],
             'originality_percentage' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:100'],
             'originality_status' => ['sometimes', 'nullable', Rule::in(array_keys(config('review.originality_statuses')))],
-            'final_recommendation' => ['sometimes', 'nullable', Rule::in(array_keys(config('review.recommendations')))],
-            'final_grade' => ['sometimes', 'nullable', Rule::in($gradeValues)],
+            'questions' => ['sometimes', 'nullable', 'string', 'max:50000'],
+            'originality_comment' => ['sometimes', 'nullable', 'string', 'max:50000'],
         ];
 
-        foreach ([
-            'activity_independence', 'activity_creativity', 'quality_overall_concept',
-            'quality_topic_completeness', 'quality_topic_quality', 'quality_methods',
-            'quality_complexity', 'quality_practicality', 'literature_sorting',
-            'literature_usage', 'literature_conclusions', 'formal_logic', 'formal_style',
-            'formal_terminology', 'formal_graphics',
-        ] as $field) {
-            $rules[$field] = ['sometimes', 'nullable', Rule::in($gradeValues)];
-        }
+        foreach (config('review.blocks') as $block) {
+            foreach (array_keys($block['criteria']) as $field) {
+                $rules[$field] = ['sometimes', 'nullable', Rule::in($gradeValues)];
+            }
 
-        foreach ([
-            'activity_comment', 'quality_comment', 'literature_comment', 'formal_comment',
-            'questions', 'originality_comment', 'author_statement',
-        ] as $field) {
-            $rules[$field] = ['sometimes', 'nullable', 'string', 'max:50000'];
+            $rules[$block['comment']] = ['sometimes', 'nullable', 'string', 'max:50000'];
         }
 
         return $rules;
     }
 
-    private function validatedData(Request $request): array
+    /**
+     * Validates the submitted form and derives the server-controlled fields
+     * (academic year, supervisor/opponent identity, final grade and recommendation).
+     */
+    private function reviewAttributes(Request $request, ?Review $existing = null): array
     {
-        $gradeValues = array_keys(config('review.grades'));
+        $header = $request->validate([
+            'thesis_type' => ['required', Rule::in(array_keys(config('review.thesis_types')))],
+            'review_role' => ['required', Rule::in(array_keys(config('review.roles')))],
+        ]);
+        $type = $header['thesis_type'];
+        $role = $header['review_role'];
+        $blocks = array_keys(config("review.role_blocks.{$role}"));
+        $gradeRule = ['required', Rule::in(array_keys(config('review.grades')))];
 
-        return $request->validate([
-            'academic_year' => ['required', 'string', 'max:20'],
+        $rules = [
             'student_name' => ['required', 'string', 'max:255'],
-            'study_program' => ['required', 'string', 'max:255'],
-            'thesis_title' => ['required', 'string'],
-            'supervisor_name' => ['required', 'string', 'max:255'],
+            'study_program' => ['required', Rule::in(config("review.thesis_types.{$type}.programs"))],
+            'thesis_title' => ['required', 'string', 'max:10000'],
             'place' => ['required', 'string', 'max:255'],
             'review_date' => ['required', 'date'],
             'originality_percentage' => ['required', 'numeric', 'min:0', 'max:100'],
             'originality_status' => ['required', Rule::in(array_keys(config('review.originality_statuses')))],
-            'activity_independence' => ['required', Rule::in($gradeValues)],
-            'activity_creativity' => ['required', Rule::in($gradeValues)],
-            'activity_comment' => ['nullable', 'string'],
-            'quality_overall_concept' => ['required', Rule::in($gradeValues)],
-            'quality_topic_completeness' => ['required', Rule::in($gradeValues)],
-            'quality_topic_quality' => ['required', Rule::in($gradeValues)],
-            'quality_methods' => ['required', Rule::in($gradeValues)],
-            'quality_complexity' => ['required', Rule::in($gradeValues)],
-            'quality_practicality' => ['required', Rule::in($gradeValues)],
-            'quality_comment' => ['nullable', 'string'],
-            'literature_sorting' => ['required', Rule::in($gradeValues)],
-            'literature_usage' => ['required', Rule::in($gradeValues)],
-            'literature_conclusions' => ['required', Rule::in($gradeValues)],
-            'literature_comment' => ['nullable', 'string'],
-            'formal_logic' => ['required', Rule::in($gradeValues)],
-            'formal_style' => ['required', Rule::in($gradeValues)],
-            'formal_terminology' => ['required', Rule::in($gradeValues)],
-            'formal_graphics' => ['required', Rule::in($gradeValues)],
-            'formal_comment' => ['nullable', 'string'],
-            'final_recommendation' => ['required', Rule::in(array_keys(config('review.recommendations')))],
-            'questions' => ['nullable', 'string'],
-            'originality_comment' => ['nullable', 'string'],
-            'final_grade' => ['required', Rule::in($gradeValues)],
-            'author_statement' => ['required', 'string'],
-        ]);
-    }
+            'questions' => ['required', 'string', 'max:50000'],
+            'originality_comment' => ['required', 'string', 'max:50000'],
+            'supervisor_name' => $role === 'opponent' ? ['required', 'string', 'max:255'] : ['nullable'],
+        ];
 
+        $gradeFields = [];
+
+        foreach ($blocks as $block) {
+            foreach (array_keys(config("review.blocks.{$block}.criteria")) as $field) {
+                $rules[$field] = $gradeRule;
+                $gradeFields[] = $field;
+            }
+
+            $rules[config("review.blocks.{$block}.comment")] = ['required', 'string', 'max:50000'];
+        }
+
+        $data = $request->validate($rules);
+        $owner = $existing?->user ?? $request->user();
+        $result = (new GradeCalculator)->calculate($role, Arr::only($data, $gradeFields));
+
+        $attributes = [
+            ...$data,
+            ...$header,
+            'academic_year' => Review::academicYearFor(Carbon::parse($data['review_date'])),
+            'supervisor_name' => $role === 'supervisor' ? $owner->name : $data['supervisor_name'],
+            'opponent_name' => $role === 'opponent' ? $owner->name : null,
+            'final_grade' => $result['letter'],
+            'final_score' => $result['score'],
+            'final_recommendation' => $result['recommended'] ? 'recommend' : 'not_recommend',
+        ];
+
+        // Fields of blocks that do not belong to the chosen role must not keep stale values.
+        foreach (config('review.blocks') as $name => $block) {
+            if (! in_array($name, $blocks, true)) {
+                foreach (array_keys($block['criteria']) as $field) {
+                    $attributes[$field] = null;
+                }
+                $attributes[$block['comment']] = null;
+            }
+        }
+
+        return $attributes;
+    }
     private function authorizeReview(Request $request, Review $review): void
     {
         abort_unless($request->user()->isAdmin() || $review->user_id === $request->user()->id, 403);
