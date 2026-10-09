@@ -138,7 +138,7 @@
             border-left: 0.2mm solid #000;
             border-right: 0.2mm solid #000;
             border-bottom: 0.2mm solid #000;
-            min-height: 24mm;
+            min-height: 28mm;
             padding: 0.9mm 1.2mm 1.2mm;
             white-space: pre-line;
             font-size: 8.5pt;
@@ -148,7 +148,7 @@
             min-height: 49mm;
         }
         .comment-block.small {
-            min-height: 18mm;
+            min-height: 24mm;
         }
         .comment-label {
             font-weight: 400;
