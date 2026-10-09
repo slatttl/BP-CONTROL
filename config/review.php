@@ -41,15 +41,13 @@ return [
             'author_genitive' => 'študenta',
             'author_name_label' => 'Meno študenta',
             'programs' => [
-                'Priemyselná informatika, automatizácia a robotika',
-                'Mechatronika',
-
-                'Počítačová podpora výrobných technológií a robotizovaných systémov',
-                'Smart výrobné inžinierstvo',
-
-                'Priemyselný manažment',
-                'Bezpečnostný a environmentálny manažment',
-                'Materiálové inžinierstvo',
+                'B-BEM bezpečnostný a environmentálny manažment',
+                'B-MTI materiálové inžinierstvo',
+                'B-MCHT mechatronika',
+                'B-PPTRS počítačová podpora výrobných technológií a robotizovaných systémov',
+                'B-PIAR priemyselná informatika, automatizácia a robotika',
+                'B-PM priemyselný manažment',
+                'B-SVI smart výrobné inžinierstvo',
             ],
         ],
         'master' => [

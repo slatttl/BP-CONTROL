@@ -149,7 +149,7 @@ class ReviewEfficiencyFeaturesTest extends TestCase
             'review_role' => 'supervisor',
             'academic_year' => '2026/2027',
             'student_name' => 'Jana Nováková',
-            'study_program' => 'Priemyselná informatika, automatizácia a robotika',
+            'study_program' => 'B-PIAR priemyselná informatika, automatizácia a robotika',
             'thesis_title' => 'Efektívne spracovanie dát',
             'supervisor_name' => 'Vedúci práce',
             'place' => 'Trnava',
