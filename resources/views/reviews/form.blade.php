@@ -75,18 +75,20 @@
                 </div>
             @endif
 
-            <form method="POST" action="{{ $review->exists ? route('reviews.update', $review) : route('reviews.store') }}" class="space-y-8">
+            <form id="review-form" method="POST" action="{{ $review->exists ? route('reviews.update', $review) : route('reviews.store') }}" data-draft-url="{{ $draftSaveUrl }}" data-duplicate-url="{{ $duplicateCheckUrl }}" data-review-id="{{ $review->exists ? $review->id : '' }}" class="space-y-8">
                 @csrf
                 @if ($review->exists)
                     @method('PUT')
                 @endif
+
+                <div id="duplicate-warning" class="hidden rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status"></div>
 
                 <section class="rounded-3xl border border-white/70 bg-white/90 p-6 shadow-sm ring-1 ring-slate-100">
                     <h3 class="text-lg font-semibold text-slate-900">Základné údaje</h3>
                     <div class="mt-6 grid gap-6 md:grid-cols-2">
                         <label class="block">
                             <span class="text-sm font-medium text-gray-700">Akademický rok</span>
-                            <input name="academic_year" value="{{ old('academic_year', $review->academic_year ?? '2025/2026') }}" class="mt-2 block w-full rounded-2xl border-slate-200 bg-white shadow-sm focus:border-slate-500 focus:ring-slate-500" required>
+                            <input id="academic_year" name="academic_year" value="{{ old('academic_year', $review->academic_year ?? '2025/2026') }}" class="mt-2 block w-full rounded-2xl border-slate-200 bg-white shadow-sm focus:border-slate-500 focus:ring-slate-500" required>
                         </label>
                         <label class="block">
                             <span class="text-sm font-medium text-gray-700">Dátum vyplnenia</span>
@@ -94,7 +96,7 @@
                         </label>
                         <label class="block">
                             <span class="text-sm font-medium text-gray-700">Meno študenta</span>
-                            <input name="student_name" value="{{ old('student_name', $review->student_name) }}" class="mt-2 block w-full rounded-2xl border-slate-200 bg-white shadow-sm focus:border-slate-500 focus:ring-slate-500" required>
+                            <input id="student_name" name="student_name" value="{{ old('student_name', $review->student_name) }}" class="mt-2 block w-full rounded-2xl border-slate-200 bg-white shadow-sm focus:border-slate-500 focus:ring-slate-500" required>
                         </label>
                         <label class="block">
                             <span class="text-sm font-medium text-gray-700">Študijný program</span>
@@ -197,6 +199,9 @@
                 </section>
 
                 <div class="flex items-center justify-end gap-3">
+                    <p id="draft-status" class="mr-auto text-sm text-slate-500" aria-live="polite">
+                        {{ $draft ? 'Rozpracované zmeny sú uložené.' : 'Zmeny sa ukladajú automaticky.' }}
+                    </p>
                     @if ($review->exists)
                         <a href="{{ route('reviews.show', $review) }}" class="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50">Náhľad</a>
                     @endif
@@ -207,4 +212,121 @@
             </form>
         </div>
     </div>
+    <script>
+        const reviewForm = document.getElementById('review-form');
+        const draftStatus = document.getElementById('draft-status');
+        const duplicateWarning = document.getElementById('duplicate-warning');
+        let draftTimer = null;
+        let duplicateTimer;
+        let draftSaveQueue = Promise.resolve();
+        let duplicateRequest;
+
+        const saveReviewDraft = () => {
+            const draftData = new FormData(reviewForm);
+            draftStatus.textContent = 'Ukladám rozpracované zmeny…';
+            draftStatus.classList.remove('text-rose-700');
+
+            draftSaveQueue = draftSaveQueue.then(async () => {
+                try {
+                    const response = await fetch(reviewForm.dataset.draftUrl, {
+                        method: 'POST',
+                        body: draftData,
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        credentials: 'same-origin',
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Draft save failed');
+                    }
+
+                    draftStatus.textContent = `Uložené ${new Intl.DateTimeFormat('sk-SK', { hour: '2-digit', minute: '2-digit' }).format(new Date())}`;
+                } catch (error) {
+                    draftStatus.textContent = 'Automatické uloženie zlyhalo. Skontrolujte pripojenie a skúste znova.';
+                    draftStatus.classList.add('text-rose-700');
+                }
+            });
+
+            return draftSaveQueue;
+        };
+
+        const queueDraftSave = () => {
+            window.clearTimeout(draftTimer);
+            draftTimer = window.setTimeout(() => {
+                draftTimer = null;
+                saveReviewDraft();
+            }, 900);
+        };
+
+        const checkForDuplicateReview = async () => {
+            if (duplicateRequest) {
+                duplicateRequest.abort();
+            }
+
+            duplicateRequest = new AbortController();
+            const studentName = document.getElementById('student_name').value.trim();
+            const academicYear = document.getElementById('academic_year').value.trim();
+
+            if (!studentName || !academicYear) {
+                duplicateWarning.classList.add('hidden');
+                return;
+            }
+
+            const params = new URLSearchParams({
+                student_name: studentName,
+                academic_year: academicYear,
+            });
+
+            if (reviewForm.dataset.reviewId) {
+                params.set('review_id', reviewForm.dataset.reviewId);
+            }
+
+            try {
+                const response = await fetch(`${reviewForm.dataset.duplicateUrl}?${params}`, {
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'same-origin',
+                    signal: duplicateRequest.signal,
+                });
+
+                if (!response.ok) {
+                    throw new Error('Duplicate check failed');
+                }
+
+                const result = await response.json();
+                duplicateWarning.textContent = result.duplicate
+                    ? 'Už existuje posudok pre tohto študenta v zadanom akademickom roku. Skontrolujte, či nevytvárate duplicitný záznam.'
+                    : '';
+                duplicateWarning.classList.toggle('hidden', !result.duplicate);
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+
+                duplicateWarning.textContent = 'Kontrolu duplicity sa nepodarilo vykonať.';
+                duplicateWarning.classList.remove('hidden');
+            }
+        };
+
+        reviewForm.addEventListener('input', (event) => {
+            queueDraftSave();
+
+            if (event.target.name === 'student_name' || event.target.name === 'academic_year') {
+                window.clearTimeout(duplicateTimer);
+                duplicateTimer = window.setTimeout(checkForDuplicateReview, 350);
+            }
+        });
+        reviewForm.addEventListener('change', queueDraftSave);
+        reviewForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            if (draftTimer !== null) {
+                window.clearTimeout(draftTimer);
+                draftTimer = null;
+            }
+            saveReviewDraft().finally(() => reviewForm.submit());
+        });
+
+        checkForDuplicateReview();
+    </script>
 </x-app-layout>

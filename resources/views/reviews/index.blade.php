@@ -112,11 +112,41 @@
                 </form>
             </section>
 
+            @if ($drafts->isNotEmpty())
+                <section class="rounded-3xl border border-amber-200 bg-amber-50/80 p-5 shadow-sm">
+                    <h3 class="text-lg font-semibold text-amber-950">Rozpracované posudky</h3>
+                    <div class="mt-3 divide-y divide-amber-200">
+                        @foreach ($drafts as $draft)
+                            <div class="flex flex-wrap items-center justify-between gap-3 py-3">
+                                <div>
+                                    <p class="font-medium text-amber-950">{{ $draft->payload['student_name'] ?? 'Nový posudok' }}</p>
+                                    <p class="text-sm text-amber-800">Automaticky uložené {{ $draft->updated_at->format('d.m.Y H:i') }}</p>
+                                </div>
+                                <a href="{{ $draft->draft_key === 'new' ? route('reviews.create') : route('reviews.edit', $draft->review_id) }}" class="rounded-xl border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-100">Pokračovať</a>
+                            </div>
+                        @endforeach
+                    </div>
+                </section>
+            @endif
+
             <section class="overflow-hidden rounded-3xl border border-white/70 bg-white/90 shadow-sm ring-1 ring-slate-100">
+                <form id="bulk-reviews-form" method="POST">
+                    @csrf
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-4">
+                        <p class="text-sm text-slate-600">Vyber posudky na aktuálnej strane (max. 50).</p>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="submit" formaction="{{ route('reviews.bulk.csv') }}" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Exportovať CSV</button>
+                            <button type="submit" formaction="{{ route('reviews.bulk.pdf') }}" class="rounded-xl bg-rose-700 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-800">Stiahnuť PDF ZIP</button>
+                        </div>
+                    </div>
+                </form>
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-slate-200 text-sm">
                         <thead class="bg-slate-50/90 text-slate-600">
                             <tr>
+                                <th class="px-4 py-3 text-left font-semibold">
+                                    <input id="select-all-reviews" type="checkbox" aria-label="Vybrať všetky posudky na stránke" class="rounded border-slate-300 text-rose-700 focus:ring-rose-500">
+                                </th>
                                 <th class="px-4 py-3 text-left font-semibold">Student</th>
                                 @if ($isAdmin && $selectedScope === 'all')
                                     <th class="px-4 py-3 text-left font-semibold">Vlastník</th>
@@ -131,6 +161,9 @@
                         <tbody class="divide-y divide-slate-100 bg-white">
                             @forelse ($reviews as $review)
                                 <tr class="align-top transition hover:bg-slate-50/60">
+                                    <td class="px-4 py-4">
+                                        <input form="bulk-reviews-form" type="checkbox" name="review_ids[]" value="{{ $review->id }}" class="review-selection rounded border-slate-300 text-rose-700 focus:ring-rose-500" aria-label="Vybrať posudok študenta {{ $review->student_name }}">
+                                    </td>
                                     <td class="px-4 py-4">
                                         <div class="font-medium text-slate-900">{{ $review->student_name }}</div>
                                         <div class="mt-1 max-w-md text-xs text-slate-500">{{ \Illuminate\Support\Str::limit($review->thesis_title, 82) }}</div>
@@ -159,7 +192,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="{{ $isAdmin && $selectedScope === 'all' ? 7 : 6 }}" class="px-4 py-12 text-center text-slate-500">Zatiaľ neexistuje žiadny posudok pre zvolený filter.</td>
+                                    <td colspan="{{ $isAdmin && $selectedScope === 'all' ? 8 : 7 }}" class="px-4 py-12 text-center text-slate-500">Zatiaľ neexistuje žiadny posudok pre zvolený filter.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -169,4 +202,20 @@
             </section>
         </div>
     </div>
+    <script>
+        const selectAllReviews = document.getElementById('select-all-reviews');
+        const reviewSelections = [...document.querySelectorAll('.review-selection')];
+
+        selectAllReviews?.addEventListener('change', () => {
+            reviewSelections.forEach((checkbox) => {
+                checkbox.checked = selectAllReviews.checked;
+            });
+        });
+
+        reviewSelections.forEach((checkbox) => {
+            checkbox.addEventListener('change', () => {
+                selectAllReviews.checked = reviewSelections.length > 0 && reviewSelections.every((item) => item.checked);
+            });
+        });
+    </script>
 </x-app-layout>

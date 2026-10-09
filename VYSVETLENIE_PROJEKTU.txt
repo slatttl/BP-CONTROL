@@ -194,6 +194,8 @@ Toto nie su PHP logicke subory, ale Blade sablony, ktore Laravel vykresluje do H
 - resources/views/reviews/form.blade.php
   Hlavny formular na vyplnenie posudku.
   Toto je najdolezitejsia obrazovka pre profesora.
+  Rozpracovane zmeny sa automaticky ukladaju a po navrate sa obnovia.
+  Po uspesnom ulozeni kompletneho posudku sa koncept odstrani.
 
 - resources/views/reviews/show.blade.php
   Detail jedneho konkretneho posudku po ulozeni.
@@ -232,6 +234,9 @@ V tabulke reviews sa uklada napr.:
 - vysledna znamka
 - odporucenie k obhajobe
 
+Tabulka review_drafts uchovava ciastocne vyplnene koncepty, ktore sa po
+dokonceni formulara odstrania.
+
 Laravel cez Eloquent model preklada PHP objekty na SQL dotazy.
 
 --------------------------------------------------
@@ -267,6 +272,11 @@ Controller spravi validaciu:
 Ak je vsetko v poriadku:
 - vytvori sa alebo upravi zaznam v databaze
 - pouzivatel sa presmeruje na detail posudku
+
+Pri zadani mena studenta a akademickeho roka sa zobrazi upozornenie, ak uz
+existuje zodpovedajuci posudok. Upozornenie ulozenie neblokuje.
+V zozname mozno oznacit viac posudkov a stiahnut ich PDF v jednom ZIP archive
+alebo vyexportovat vybrane udaje do CSV.
 
 --------------------------------------------------
 8. AKO FUNGUJE PDF
@@ -429,4 +439,3 @@ Ak sa bude projekt dalej upravovat, najcastejsie sa budu menit:
 
 - routes/web.php
   ked sa budu pridavat nove stranky alebo akcie
-
