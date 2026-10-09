@@ -1,51 +1,22 @@
 @php
-    $sections = [
-        'Aktivita študenta' => [
-            'activity_independence' => 'Samostatnosť',
-            'activity_creativity' => 'Tvorivosť',
-        ],
-        'Kvalita riešenia' => [
-            'quality_overall_concept' => 'Celková koncepcia práce',
-            'quality_topic_completeness' => 'Úplnosť spracovania témy',
-            'quality_topic_quality' => 'Kvalita spracovania témy',
-            'quality_methods' => 'Použité metódy riešenia',
-            'quality_complexity' => 'Algoritmická náročnosť, prácnosť riešenia',
-            'quality_practicality' => 'Praktická aplikovateľnosť práce',
-        ],
-        'Práca s literatúrou' => [
-            'literature_sorting' => 'Triedenie a hodnotenie prameňov',
-            'literature_usage' => 'Využitie poznatkov z literatúry a praxe',
-            'literature_conclusions' => 'Vyvodzovanie vlastných záverov z literárnych prameňov',
-        ],
-        'Formálna úroveň práce' => [
-            'formal_logic' => 'Logika usporiadania práce',
-            'formal_style' => 'Štylizácia textu',
-            'formal_terminology' => 'Použitá terminológia',
-            'formal_graphics' => 'Grafická realizácia',
-        ],
-    ];
-
-    $sectionComments = [
-        'Aktivita študenta' => 'activity_comment',
-        'Kvalita riešenia' => 'quality_comment',
-        'Práca s literatúrou' => 'literature_comment',
-        'Formálna úroveň práce' => 'formal_comment',
-    ];
-
-    $gradeLabels = [
-        'A' => 'výborná',
-        'B' => 'veľmi dobrá',
-        'C' => 'dobrá',
-        'D' => 'uspokojivá',
-        'E' => 'dostatočná',
-        'FX' => 'nedostatočná',
-    ];
+    $typeConfig = $review->thesisConfig();
+    $isOpponent = $review->isOpponent();
+    $type = $review->thesis_type ?: 'bachelor';
+    $role = $review->review_role ?: 'supervisor';
+    $signer = $isOpponent ? $review->opponent_name : $review->supervisor_name;
+    $recommended = $review->final_recommendation === 'recommend';
+    $gradeLabels = ['A' => 'výborná', 'B' => 'veľmi dobrá', 'C' => 'dobrá', 'D' => 'uspokojivá', 'E' => 'dostatočná', 'FX' => 'nedostatočná'];
+    $activeBlocks = collect(array_keys(config("review.role_blocks.{$role}")))
+        ->mapWithKeys(fn ($name) => [$name => config("review.blocks.{$name}")]);
+    $firstPageBlocks = $isOpponent ? 1 : 2;
+    $roleConfig = $review->roleConfig();
+    $title = $roleConfig['title'].' '.mb_strtoupper($typeConfig['genitive']);
+    $ratingTitle = $roleConfig['rating_title'].' '.mb_strtoupper($typeConfig['genitive']);
 @endphp
 <!DOCTYPE html>
 <html lang="sk">
 <head>
-    <meta charset="utf-8">
-    <style>
+    <meta charset="utf-8">    <style>
         @page { size: A4; margin: 5.5mm 6mm 6.5mm 6mm; }
         * { box-sizing: border-box; }
         html, body { margin: 0; padding: 0; }
@@ -280,97 +251,24 @@
 </head>
 <body>
     <div class="page">
-        <div class="title">POSUDOK VEDÚCEHO BAKALÁRSKEJ PRÁCE</div>
+        <div class="title">{{ $title }}</div>
         <div class="year">Akademický rok: {{ $review->academic_year }}</div>
+        @include('reviews.partials.pdf-header')
 
-        <div class="top-fields">
-            <div class="label-row">
-                <div class="half field-label">Meno študenta:</div>
-                <div class="half right field-label">Študijný program:</div>
-            </div>
-            <div class="value-row">
-                <div class="half field-box">{{ $review->student_name }}</div>
-                <div class="half right field-box">{{ $review->study_program }}</div>
-            </div>
-
-            <div class="label-row">
-                <div class="full field-label">Názov práce:</div>
-            </div>
-            <div class="value-row">
-                <div class="full field-box title-box">{{ $review->thesis_title }}</div>
-            </div>
-
-            <div class="label-row">
-                <div class="half field-label">Meno vedúceho:</div>
-            </div>
-            <div class="value-row">
-                <div class="half field-box">{{ $review->supervisor_name }}</div>
-            </div>
-            <div class="clearfix"></div>
-        </div>
-
-        @foreach (array_slice($sections, 0, 2, true) as $sectionTitle => $fields)
-            <div class="section">
-                <div class="section-title">{{ $sectionTitle }}</div>
-                <table class="matrix">
-                    <thead>
-                        <tr>
-                            <th class="crit-col"></th>
-                            @foreach ($grades as $code => $label)
-                                <th class="grade-col"><span class="grade-code">{{ $code }}</span><span class="grade-name">{{ $gradeLabels[$code] }}</span></th>
-                            @endforeach
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($fields as $field => $label)
-                            <tr>
-                                <td class="crit-col">{{ $label }}:</td>
-                                @foreach ($grades as $code => $gradeLabel)
-                                    <td class="grade-col"><span class="tick">{{ $review->{$field} === $code ? 'X' : '' }}</span></td>
-                                @endforeach
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-                <div class="comment-block @if ($sectionTitle === 'Kvalita riesenia') large @else small @endif"><span class="comment-label">Komentár:</span>
-{{ $review->{$sectionComments[$sectionTitle]} }}</div>
-            </div>
+        @foreach ($activeBlocks->take($firstPageBlocks) as $blockName => $block)
+            @include('reviews.partials.pdf-block')
         @endforeach
     </div>
 
     <div class="page">
-        @foreach (array_slice($sections, 2, 2, true) as $sectionTitle => $fields)
-            <div class="section">
-                <div class="section-title">{{ $sectionTitle }}</div>
-                <table class="matrix">
-                    <thead>
-                        <tr>
-                            <th class="crit-col"></th>
-                            @foreach ($grades as $code => $label)
-                                <th class="grade-col"><span class="grade-code">{{ $code }}</span><span class="grade-name">{{ $gradeLabels[$code] }}</span></th>
-                            @endforeach
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($fields as $field => $label)
-                            <tr>
-                                <td class="crit-col">{{ $label }}:</td>
-                                @foreach ($grades as $code => $gradeLabel)
-                                    <td class="grade-col"><span class="tick">{{ $review->{$field} === $code ? 'X' : '' }}</span></td>
-                                @endforeach
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-                <div class="comment-block small"><span class="comment-label">Komentár:</span>
-{{ $review->{$sectionComments[$sectionTitle]} }}</div>
-            </div>
+        @foreach ($activeBlocks->slice($firstPageBlocks) as $blockName => $block)
+            @include('reviews.partials.pdf-block')
         @endforeach
 
         <div class="summary-title">Celkové zhodnotenie práce</div>
         <div class="summary-box">
-            Predložená bakalárska práca spĺňa stanovené kritériá kvality z hľadiska obsahu, formy spracovania, prínosu a stanoveného cieľa. Prácu
-            <span class="recommend">{{ $recommendations[$review->final_recommendation] ?? $review->final_recommendation }}</span>
+            Predložená {{ $typeConfig['nominative'] }} {{ $recommended ? 'spĺňa' : 'nespĺňa' }} stanovené kritériá kvality z hľadiska obsahu, formy spracovania, prínosu a stanoveného cieľa. Prácu
+            <span class="recommend">{{ $recommended ? 'odporúčam' : 'neodporúčam' }}</span>
             k obhajobe pred Štátnou skúšobnou komisiou.
         </div>
 
@@ -385,65 +283,29 @@
                     <td class="value">{{ number_format((float) $review->originality_percentage, 2, ',', ' ') }} %</td>
                 </tr>
                 <tr>
-                    <td>Miera originality bakalárskej práce:</td>
+                    <td>Miera originality {{ $typeConfig['genitive'] }}:</td>
                     <td class="value">{{ $originalityStatuses[$review->originality_status] ?? $review->originality_status }}</td>
                 </tr>
                 <tr>
                     <td colspan="2">Komentár:<br>{{ $review->originality_comment }}</td>
                 </tr>
-                <tr>
-                    <td colspan="2">Vyjadrenie autora:<br>{{ $review->author_statement }}</td>
-                </tr>
             </tbody>
         </table>
 
-        <div class="footer-row">
-            <div class="footer-left">Miesto a dátum: {{ $review->place }}, {{ $review->review_date?->format('j.n.Y') }}</div>
-            <div class="footer-right"><div class="signature-name">{{ $review->supervisor_name }}</div></div>
-            <div class="clearfix"></div>
-        </div>
+        @include('reviews.partials.pdf-footer')
     </div>
 
     <div>
-        <div class="final-title">HODNOTENIE VEDÚCEHO BAKALÁRSKEJ PRÁCE</div>
+        <div class="final-title">{{ $ratingTitle }}</div>
         <div class="year">Akademický rok: {{ $review->academic_year }}</div>
-
-        <div class="top-fields">
-            <div class="label-row">
-                <div class="half field-label">Meno študenta:</div>
-                <div class="half right field-label">Študijný program:</div>
-            </div>
-            <div class="value-row">
-                <div class="half field-box">{{ $review->student_name }}</div>
-                <div class="half right field-box">{{ $review->study_program }}</div>
-            </div>
-
-            <div class="label-row">
-                <div class="full field-label">Názov práce:</div>
-            </div>
-            <div class="value-row">
-                <div class="full field-box title-box">{{ $review->thesis_title }}</div>
-            </div>
-
-            <div class="label-row">
-                <div class="half field-label">Meno vedúceho:</div>
-            </div>
-            <div class="value-row">
-                <div class="half field-box">{{ $review->supervisor_name }}</div>
-            </div>
-            <div class="clearfix"></div>
-        </div>
+        @include('reviews.partials.pdf-header')
 
         <div class="grade-summary">
-            Bakalársku prácu hodnotím známkou
-            <strong>- {{ $grades[$review->final_grade] ?? '' }} [{{ $review->final_grade }}] -</strong>
+            {{ ucfirst($typeConfig['accusative']) }} hodnotím známkou
+            <strong>- {{ $gradeAdverbs[$review->final_grade] ?? '' }} [{{ $review->final_grade }}] -</strong>
         </div>
 
-        <div class="footer-row">
-            <div class="footer-left">Miesto a dátum: {{ $review->place }}, {{ $review->review_date?->format('j.n.Y') }}</div>
-            <div class="footer-right"><div class="signature-name">{{ $review->supervisor_name }}</div></div>
-            <div class="clearfix"></div>
-        </div>
+        @include('reviews.partials.pdf-footer')
     </div>
 </body>
 </html>
