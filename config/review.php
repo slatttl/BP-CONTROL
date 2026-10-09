@@ -43,8 +43,10 @@ return [
             'programs' => [
                 'Priemyselná informatika, automatizácia a robotika',
                 'Mechatronika',
+
                 'Počítačová podpora výrobných technológií a robotizovaných systémov',
                 'Smart výrobné inžinierstvo',
+
                 'Priemyselný manažment',
                 'Bezpečnostný a environmentálny manažment',
                 'Materiálové inžinierstvo',
@@ -60,8 +62,12 @@ return [
             'author_name_label' => 'Meno diplomanta',
             'programs' => [
                 'Priemyselná informatika, automatizácia a robotika',
-                'Počítačová podpora návrhu a výroby',
-                'Smart výrobné inžinierstvo',
+                'Počítačová podpora návrhu a výroby – zameranie počítačová podpora návrhu a výroby',
+                'Počítačová podpora návrhu a výroby – zameranie robotizované výrobné systémy',
+                'Smart výrobné inžinierstvo – zameranie aditívne technológie a hybridná výroba',
+                'Smart výrobné inžinierstvo – zameranie inteligentné a udržateľné procesy obrábania a tvárnenia',
+                'Smart výrobné inžinierstvo – zameranie zváranie a spájanie materiálov',
+
                 'Priemyselné inžinierstvo a manažment',
                 'Bezpečnostný a environmentálny manažment',
                 'Materiálové inžinierstvo',
