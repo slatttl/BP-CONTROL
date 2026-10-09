@@ -48,8 +48,6 @@ return [
                 'Priemyselný manažment',
                 'Bezpečnostný a environmentálny manažment',
                 'Materiálové inžinierstvo',
-                'Aplikovaná informatika a automatizácia v priemysle',
-                'Mechatronika v technologických zariadeniach',
             ],
         ],
         'master' => [
@@ -68,7 +66,6 @@ return [
                 'Bezpečnostný a environmentálny manažment',
                 'Materiálové inžinierstvo',
                 'Materials Engineering and Technologies',
-                'Automatizácia a informatizácia procesov v priemysle',
             ],
         ],
     ],
