@@ -149,7 +149,7 @@
                         <div class="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                             @foreach ($block['criteria'] as $field => $label)
                                 <label class="block">
-                                    <span class="text-sm font-medium text-gray-700" @if (is_array($label)) data-label-bachelor="{{ $label['bachelor'] }}" data-label-master="{{ $label['master'] }}" @endif>{{ is_array($label) ? $label[$type] : $label }}</span>
+                                    <span class="text-sm font-medium text-gray-700" @if (is_array($label)) data-labels="{{ json_encode(\App\Support\CriterionLabel::variants($label)) }}" @endif>{{ \App\Support\CriterionLabel::resolve($label, $type, $role) }}</span>
                                     <select name="{{ $field }}" data-grade class="{{ $selectClasses }}" required @disabled(! $active)>
                                         <option value="">Vyberte známku</option>
                                         @foreach ($grades as $value => $labelValue)
@@ -390,8 +390,8 @@
                 section.querySelectorAll('select, textarea').forEach((control) => { control.disabled = !active; });
             });
 
-            document.querySelectorAll('[data-label-bachelor]').forEach((label) => {
-                label.textContent = label.dataset[`label${type === 'master' ? 'Master' : 'Bachelor'}`];
+            document.querySelectorAll('[data-labels]').forEach((label) => {
+                label.textContent = JSON.parse(label.dataset.labels)[`${type}:${role}`];
             });
             field('activity_title').textContent = `Aktivita ${reviewConfig.authorGenitive[type]}`;
             field('student_label').textContent = reviewConfig.authorNameLabel[type];

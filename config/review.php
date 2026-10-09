@@ -93,8 +93,9 @@ return [
                 'quality_overall_concept' => 'Celková koncepcia práce',
                 'quality_topic_completeness' => 'Úplnosť spracovania témy',
                 'quality_topic_quality' => 'Kvalita spracovania témy',
-                'quality_methods' => ['bachelor' => 'Použité metódy riešenia', 'master' => 'Aplikácia inžinierskych metód riešenia'],
-                'quality_complexity' => 'Algoritmická náročnosť, prácnosť riešenia',
+                // DP vedúci uses both method criteria; DP oponent only the engineering-methods one.
+                'quality_methods' => ['bachelor' => 'Použité metódy riešenia', 'master' => 'Aplikácia inžinierskych metód riešenia', 'master:supervisor' => 'Použité metódy riešenia'],
+                'quality_complexity' => ['bachelor' => 'Algoritmická náročnosť, prácnosť riešenia', 'master' => 'Algoritmická náročnosť, prácnosť riešenia', 'master:supervisor' => 'Aplikácia inžinierskych metód riešenia'],
                 'quality_practicality' => 'Praktická aplikovateľnosť práce',
             ],
             'critical' => ['quality_topic_completeness', 'quality_topic_quality'],

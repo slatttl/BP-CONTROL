@@ -8,7 +8,7 @@
         $block = config("review.blocks.{$blockName}");
         $title = str_replace('{author}', $typeConfig['author_genitive'], $block['title']);
         $sections[$title] = collect($block['criteria'])
-            ->map(fn ($label) => is_array($label) ? $label[$review->thesis_type ?: 'bachelor'] : $label)
+            ->map(fn ($label) => \App\Support\CriterionLabel::resolve($label, $review->thesis_type, $review->review_role ?: 'supervisor'))
             ->all();
         $sectionComments[$title] = $block['comment'];
     }
