@@ -1,3 +1,11 @@
+                'Priemyselná informatika, automatizácia a robotika',
+                'Počítačová podpora návrhu a výroby',
+                'Smart výrobné inžinierstvo',
+                'Priemyselné inžinierstvo a manažment',
+                'Bezpečnostný a environmentálny manažment',
+                'Materiálové inžinierstvo',
+                'Materials Engineering and Technologies',
+                'Automatizácia a informatizácia procesov v priemysle',
 <?php
 
 return [
@@ -41,6 +49,13 @@ return [
             'author_genitive' => 'študenta',
             'author_name_label' => 'Meno študenta',
             'programs' => [
+                'Priemyselná informatika, automatizácia a robotika',
+                'Mechatronika',
+                'Počítačová podpora výrobných technológií a robotizovaných systémov',
+                'Smart výrobné inžinierstvo',
+                'Priemyselný manažment',
+                'Bezpečnostný a environmentálny manažment',
+                'Materiálové inžinierstvo',
                 'Aplikovaná informatika a automatizácia v priemysle',
                 'Mechatronika v technologických zariadeniach',
             ],
