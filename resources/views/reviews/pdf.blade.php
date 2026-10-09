@@ -70,6 +70,11 @@
             font-size: 8.5pt;
             font-weight: 700;
         }
+        .field-table { width: 100%; table-layout: fixed; border-collapse: collapse; margin-bottom: 3mm; }
+        .field-table td { vertical-align: top; padding: 0; }
+        .field-cell { width: 48.5%; }
+        .field-cell-full { width: 100%; }
+        .field-gap { width: 3%; }
         .field-box {
             border: 0.2mm solid #000;
             min-height: 9.8mm;
@@ -79,7 +84,7 @@
         }
         .field-box { font-weight: 700; font-style: italic; }
         .plain .field-box { border: 0; padding-left: 0; min-height: 0; }
-        .plain .value-row { margin-bottom: 6mm; }
+        .plain .field-table { margin-bottom: 4mm; }
         .field-box.title-box {
             min-height: 11mm;
         }
