@@ -14,8 +14,8 @@ return [
         'not_recommend' => 'neodporucam',
     ],
     'originality_statuses' => [
-        'vyhovujuca' => 'vyhovujuca',
-        'nevyhovujuca' => 'nevyhovujuca',
+        'vyhovujuca' => 'vyhovujúca',
+        'nevyhovujuca' => 'nevyhovujúca',
     ],
 
     // Numeric value of each letter grade used by the grade calculation.
