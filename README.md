@@ -66,13 +66,6 @@ Zakladne administratorske konto:
 
 Udaje je mozne zmenit v subore `.env` pomocou premennych `ADMIN_NAME`, `ADMIN_EMAIL` a `ADMIN_PASSWORD`.
 
-### Prihlasenie nefunguje?
-
-Hash hesla (bcrypt) obsahuje salt priamo v sebe, nezavisi od prostredia. Problem byva inde:
-
-1. Skontrolujte, ze existuje .env s APP_KEY (php artisan key:generate).
-2. Spustite `php artisan migrate --seed` - seeder vytvori/obnovi admin ucet a nastavi heslo podla ADMIN_PASSWORD.
-3. Vycistite cache konfiguracie: `php artisan config:clear`.
 
 ## Pouzite technologie
 
