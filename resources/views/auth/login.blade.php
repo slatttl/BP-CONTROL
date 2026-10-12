@@ -5,8 +5,8 @@
     <div class="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
         <p class="font-semibold text-slate-800">Napoveda k prihlaseniu</p>
         <p class="mt-1">Pouzi email a heslo svojho konta. Ak sa nevies prihlasit, skontroluj velke/male pismena v hesle.</p>
-        <p class="mt-2"><strong>Admin:</strong> admin@bpcontrol.local / admin123456</p>
-        <p><strong>Test user:</strong> xcambal@stuba.sk / BOSS123</p>
+        <p><strong>Admin:</strong> admin@bpcontrol.local</p>
+        <p><strong> Test user:</strong> xcambal@stuba.sk</p>
     </div>
 
     <form method="POST" action="{{ route('login') }}">
