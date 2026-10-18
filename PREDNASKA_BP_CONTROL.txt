@@ -1,0 +1,104 @@
+BP CONTROL - PREDNASKA O PROJEKTE
+
+Projekt BP Control je webova aplikacia v Laraveli, ktora sluzi na spravu, vyplnanie a export posudkov bakalarskych a diplomovych prac. Je urcena pre veducich a oponentov, ktori hodnotia prace a potrebuju usporiadat zaznamy, vypocitavat znamku a vytvorit PDF vystup.
+
+1. AKO FUNGUJE APLIKACIA
+
+Aplikacia pracuje na principe ROUTE -> CONTROLLER -> MODEL / DATABASE -> VIEW.
+
+- Uzivatel otvori stranku.
+- Laravel zisti adresu (route).
+- Controller spracuje poziadavku.
+- Model pracuje s databazou.
+- Blade sablona vykresli HTML stranku.
+- Pri exporte do PDF sa HTML sablona premeni pomocou DomPDF do PDF dokumentu.
+
+2. HLAVNE PRIECINKY A ICH ULOHA
+
+app/
+- Obsahuje business logiku aplikacie.
+- Tu su controlleri, modely a sluzby.
+- Najdolezitejsi subor je app/Http/Controllers/ReviewController.php, pretoze spravuje posudky.
+
+app/Http/Controllers/
+- Vsetko, co sa tyka HTTP poziadaviek.
+- Kontrolery prijimaju formular, validuju data, ukladaju alebo nacitavaju zaznamy a posielaju data do Blade.
+
+app/Models/
+- Modely reprezentuju databazove entity.
+- Review model reprezentuje jeden posudok, User model reprezentuje prihlaseneho pouzivatela.
+
+app/Services/
+- Tu je logika, ktora sa nepaci priamo do controllerov.
+- Napr. GradeCalculator pocita vyslednu znamku z jednotlivych kritérii.
+
+config/
+- Centralna konfiguracia aplikacie.
+- V config/review.php je definovana stupnica znamok, typy praci, role, vahy blokov a programy.
+
+routes/
+- Definuje URL adresy aplikacie.
+- routes/web.php mapuje stranky a akcie, ako zoznam posudkov, detail, editacia, PDF a export.
+- routes/auth.php sa tyka prihlasovania a odhlasovania.
+
+resources/views/
+- Blade sablony, ktore vykresluju HTML.
+- Tu su prihlasovacie stranky, formular, zoznam, detail, PDF sablona a layouty.
+
+resources/views/auth/login.blade.php
+- Prihlasovacia obrazovka.
+- Obsahuje formular na email a heslo, checkbox Remember me a odkaz na reset hesla.
+
+resources/views/reviews/
+- Obsahuje formular na vyplnenie posudku, zoznam posudkov, detail a PDF export.
+- Najdolezitejsie subory su form.blade.php, index.blade.php, show.blade.php a pdf.blade.php.
+
+database/
+- Databazove migracie a seedery.
+- Tu sa vytvara struktura databazy a inicialne data.
+- SQLite databaza je ulozena v database/database.sqlite.
+
+public/
+- Vstupny bod aplikacie.
+- Sem smeruje webovy server a odtial sa spusta Laravel aplikacia.
+
+storage/
+- Runtime data, logy, cache, session, docasne subory.
+
+3. HLAVNA LOGIKA PROJEKTU
+
+- Pouzivatel sa prihlasuje.
+- Vytvori alebo upravi posudok.
+- Vyplni hodnotenia pre jednotlive bloky.
+- Systém automaticky vypocita vyslednu znamku podla vaha a kritickych kriterii.
+- Posudok sa da zobrazit, upravit, zkopirovat a exportovat do PDF.
+- Admin moze spravovat pouzivatelov.
+- Aplikacia umoznuje filtrovanie, bulk export a hromadnu pracu.
+
+4. PRECO JE PROJEKT SPRAVENY TAKTO
+
+Projekt je rozdeleny do vrstiev, pretoze to robi aplikaciu lepsou a uplnejsou.
+
+- Route su zodpovedne za URL.
+- Controller pracuje s poziadavkou a validaciou.
+- Modely su zodpovedne za prenos dat do databazy.
+- View predstavuje to, co uzivatel vidi.
+- Config a Services centralizuju pravidla a vypocty.
+
+Tento pristup je lepsie ako pismo jednej velkej PHP stranky, pretoze je prehladnejsi, bezpecnejsi a lahsie sa v nom orientovat a menit.
+
+5. DOPLNKOVA FUNKCIONALITA
+
+Aplikacia ma aj rozsirene funkcie, ako napr:
+- automaticke koncepty (drafts) pri neukoncenej praci,
+- kontrola duplicit,
+- filtrovanie posudkov podla stavu, roku, programu a typu prace,
+- bulk export viacerych posudkov naraz do PDF v ZIP archivu,
+- export vybranych udajov do CSV.
+
+ozname mozno oznacit viac posudkov a stiahnut ich PDF v jednom ZIP archive
+alebo vyexportovat vybrane udaje do CSV.
+
+6. ZAVER
+
+BP Control je projekt, ktory spojuje webovy formular, databazu, automaticky vypocet znamky, prihlasovanie a PDF export. Je to prakticky kompletny system pre evidenciu a hodnotenie bakalarskych a diplomovych praci, pripraveny tak, aby bol jednoduchy na spravu, rozsiranie a dalsi vyvoj.

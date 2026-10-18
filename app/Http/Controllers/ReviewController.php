@@ -220,9 +220,30 @@ class ReviewController extends Controller
 
         $fileName = Str::slug($review->student_name ?: 'posudok').'-posudok.pdf';
 
-        return Pdf::loadView('reviews.pdf', $this->formData($review))
-            ->setPaper('a4')
-            ->download($fileName);
+        $pdf = Pdf::loadView('reviews.pdf', $this->formData($review))
+            ->setPaper('a4');
+        $fontMetrics = $pdf->getDomPDF()->getFontMetrics();
+        $fontFiles = [
+            ['normal', 'normal', 'LiberationSerif-Regular.ttf'],
+            ['bold', 'normal', 'LiberationSerif-Bold.ttf'],
+            ['normal', 'italic', 'LiberationSerif-Italic.ttf'],
+            ['bold', 'italic', 'LiberationSerif-BoldItalic.ttf'],
+        ];
+
+        foreach ($fontFiles as [$weight, $style, $file]) {
+            $fontPath = str_replace('\\', '/', resource_path('fonts/'.$file));
+            $fontUri = 'file://'.$fontPath;
+
+            if (! $fontMetrics->registerFont([
+                'family' => 'Liberation Serif',
+                'weight' => $weight,
+                'style' => $style,
+            ], $fontUri)) {
+                throw new RuntimeException("Unable to register PDF font [{$file}].");
+            }
+        }
+
+        return $pdf->download($fileName);
     }
 
     public function saveDraft(Request $request, ?Review $review = null): JsonResponse

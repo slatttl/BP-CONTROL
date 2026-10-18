@@ -13,6 +13,7 @@
         $academicYear = \App\Models\Review::academicYearFor(\Illuminate\Support\Carbon::parse($reviewDateValue));
     } catch (\Throwable $e) {
     }
+    $gradeNames = ['A' => 'výborná', 'B' => 'veľmi dobrá', 'C' => 'dobrá', 'D' => 'uspokojivá', 'E' => 'dostatočná', 'FX' => 'nedostatočná'];
     $calculatorConfig = [
         'points' => config('review.grade_points'),
         'roleBlocks' => $roleBlocks,
@@ -146,17 +147,22 @@
                             <h3 class="text-lg font-semibold text-slate-900" @if ($blockName === 'activity') id="activity_title" @endif>{{ str_replace('{author}', $thesisTypes[$type]['author_genitive'], $block['title']) }}</h3>
                             <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">{{ count($block['criteria']) }} kritérií</span>
                         </div>
-                        <div class="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                        <div class="criterion-list mt-5">
                             @foreach ($block['criteria'] as $field => $label)
-                                <label class="block">
-                                    <span class="text-sm font-medium text-gray-700" @if (is_array($label)) data-labels="{{ json_encode(\App\Support\CriterionLabel::variants($label)) }}" @endif>{{ \App\Support\CriterionLabel::resolve($label, $type, $role) }}</span>
-                                    <select name="{{ $field }}" data-grade class="{{ $selectClasses }}" required @disabled(! $active)>
-                                        <option value="">Vyberte známku</option>
+                                <div class="criterion-card" role="radiogroup">
+                                    <p class="criterion-title" @if (is_array($label)) data-labels="{{ json_encode(\App\Support\CriterionLabel::variants($label)) }}" @endif>{{ \App\Support\CriterionLabel::resolve($label, $type, $role) }}</p>
+                                    <div class="grade-selector">
                                         @foreach ($grades as $value => $labelValue)
-                                            <option value="{{ $value }}" @selected(old($field, $review->{$field}) === $value)>{{ $value }} - {{ $labelValue }}</option>
+                                            <label class="grade-option">
+                                                <input type="radio" name="{{ $field }}" value="{{ $value }}" data-grade @checked(old($field, $review->{$field}) === $value) @disabled(! $active) required>
+                                                <span class="grade-box"><span class="grade-cross">✕</span></span>
+                                                <span class="grade-label"><span class="grade-letter">{{ $value }}</span>
+                                                <span class="grade-name">{{ $gradeNames[$value] ?? $labelValue }}</span>
+                                                </span>
+                                            </label>
                                         @endforeach
-                                    </select>
-                                </label>
+                                    </div>
+                                </div>
                             @endforeach
                         </div>
                         <label class="mt-6 block">
@@ -343,18 +349,31 @@
             return `${start}/${start + 1}`;
         };
 
+        const gradeValue = (name) => {
+            const element = reviewForm.elements[name];
+            if (!element) {
+                return undefined;
+            }
+
+            if (element instanceof RadioNodeList) {
+                return element.value || undefined;
+            }
+
+            return element.value || undefined;
+        };
+
         const calculateGrade = (role) => {
             const weights = reviewConfig.roleBlocks[role];
             let score = 0;
             const critical = [];
 
             for (const [block, weight] of Object.entries(weights)) {
-                const values = reviewConfig.blocks[block].criteria.map((name) => reviewConfig.points[reviewForm.elements[name]?.value]);
+                const values = reviewConfig.blocks[block].criteria.map((name) => reviewConfig.points[gradeValue(name)]);
                 if (values.some((value) => value === undefined)) {
                     return null;
                 }
                 score += weight * (values.reduce((sum, value) => sum + value, 0) / values.length);
-                reviewConfig.blocks[block].critical.forEach((name) => critical.push(reviewConfig.points[reviewForm.elements[name].value]));
+                reviewConfig.blocks[block].critical.forEach((name) => critical.push(reviewConfig.points[gradeValue(name)]));
             }
 
             const rounded = Math.round(Math.round(score * 1e10) / 1e10);
