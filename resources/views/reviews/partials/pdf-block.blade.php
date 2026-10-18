@@ -1,3 +1,8 @@
+@php
+    $commentText = (string) ($review->{$block['comment']} ?? '');
+    $commentLimit = $blockName === $activeBlocks->keys()->first() ? 1000 : 500;
+    $commentText = \Illuminate\Support\Str::limit($commentText, $commentLimit, '…');
+@endphp
 <div class="section">
     <div class="section-title">{{ str_replace('{author}', $typeConfig['author_genitive'], $block['title']) }}</div>
     <table class="matrix">
@@ -21,5 +26,5 @@
         </tbody>
     </table>
     <div class="comment-block {{ $blockName === 'quality' && $isOpponent ? 'large' : 'small' }}"><span class="comment-label">Komentár:</span>
-{{ $review->{$block['comment']} }}</div>
+{{ $commentText }}</div>
 </div>

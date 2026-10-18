@@ -136,7 +136,12 @@ class ReviewTemplateTest extends TestCase
 
                 $this->actingAs($user)->get(route('reviews.show', $review))->assertOk();
                 $this->actingAs($user)->get(route('reviews.edit', $review))->assertOk();
-                $this->actingAs($user)->get(route('reviews.pdf', $review))->assertOk();
+                $pdfResponse = $this->actingAs($user)
+                    ->get(route('reviews.pdf', $review))
+                    ->assertOk();
+                $pdfContent = $pdfResponse->getContent();
+                $this->assertStringContainsString('LiberationSerif', $pdfContent);
+                $this->assertSame(3, preg_match_all('/\/Type\s*\/Page(?!s)\b/', $pdfContent));
             }
         }
 
