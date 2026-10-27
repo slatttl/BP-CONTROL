@@ -12,6 +12,7 @@
         <link href="https://fonts.bunny.net/css?family=sora:400,500,600,700,800&display=swap" rel="stylesheet" />
 
         <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+        <style>html { font-size: 112.5%; }</style>
     </head>
     <body class="app-shell font-sans text-gray-900 antialiased">
         <div class="min-h-screen flex flex-col sm:justify-center items-center px-4 pt-8 sm:pt-0">

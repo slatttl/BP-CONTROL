@@ -12,6 +12,7 @@
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
         <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+        <style>html { font-size: 112.5%; }</style>
     </head>
     <body class="app-shell font-sans antialiased">
         <div class="min-h-screen">
