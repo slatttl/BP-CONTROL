@@ -49,6 +49,29 @@ http://127.0.0.1:8000
 
 Projekt pouziva serverove Laravel Blade sablony a na spustenie staci PHP server. JavaScriptovy server nie je potrebny.
 
+### Poziadavky
+
+- PHP 8.3 alebo novsie s rozsireniami `pdo_sqlite`, `mbstring`, `xml`, `gd`, `zip`, `curl` (kvoli exportu PDF a ZIP)
+- Composer
+
+Ubuntu 24.04 ma PHP 8.3 v standardnych zdrojoch. Pri starsich vydaniach pridaj repozitar `ppa:ondrej/php`. V Docker kontajneri pouzi obraz s PHP 8.3+ (napr. `php:8.3-cli`) a doinstaluj uvedene rozsirenia.
+
+Ak este nemas `.env` a databazu, vytvor ich pred `php artisan key:generate` (na Windowse `copy .env.example .env`):
+
+```text
+cp .env.example .env
+touch database/database.sqlite
+```
+
+### Desktopova aplikacia (volitelne)
+
+Okno aplikacie sa spusta cez NativePHP:
+
+- Windows: dvojklik na `start-desktop.bat` (ak system nema PHP 8.3, pouzije sa PHP 8.3 zo zavislosti `nativephp/php-bin`)
+- Linux: `php artisan native:install` (raz) a potom `php artisan native:run`
+
+Desktopova verzia pouziva vlastnu databazu `database/nativephp.sqlite`.
+
 ## Aktualizacia existujucej instalacie
 
 Po stiahnuti novej verzie spusti migracie, inak aplikacia hlasi chybu o chybajucom stlpci `thesis_type`:
