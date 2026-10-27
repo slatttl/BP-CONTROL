@@ -120,7 +120,7 @@ class ReviewController extends Controller
 
         $review->fill($draft?->payload ?? []);
 
-        return view('reviews.form', $this->formData($review, $draft));
+        return view('reviews.form', $this->formData($review, $draft) + $this->nameSuggestions($request));
     }
 
     public function store(Request $request): RedirectResponse
@@ -160,7 +160,7 @@ class ReviewController extends Controller
             $review->fill($draft->payload);
         }
 
-        return view('reviews.form', $this->formData($review, $draft));
+        return view('reviews.form', $this->formData($review, $draft) + $this->nameSuggestions($request));
     }
 
     public function update(Request $request, Review $review): RedirectResponse
@@ -219,7 +219,65 @@ class ReviewController extends Controller
         $this->authorizeReview($request, $review);
 
         $fileName = Str::slug($review->student_name ?: 'posudok').'-posudok.pdf';
+        $pdf = $this->renderPdf($review);
 
+        return $request->boolean('download') ? $pdf->download($fileName) : $pdf->stream($fileName);
+    }
+
+    /** Renders the PDF from the current (possibly unsaved) form values without storing anything. */
+    public function preview(Request $request, ?Review $review = null)
+    {
+        if ($review) {
+            $this->authorizeReview($request, $review);
+        }
+
+        if ($request->isMethod('get')) {
+            // Opening the preview URL directly (reload, copied link) falls back to the autosaved draft.
+            $draft = ReviewDraft::query()
+                ->where('user_id', $request->user()->id)
+                ->where('draft_key', $review ? 'review:'.$review->id : 'new')
+                ->first();
+
+            if (! $draft) {
+                return redirect()->route($review ? 'reviews.edit' : 'reviews.create', $review ?: []);
+            }
+
+            $payload = $draft->payload;
+        } else {
+            $payload = $request->validate($this->draftRules());
+        }
+
+        $preview = new Review;
+        $preview->fill($payload);
+        $preview->setRelation('user', $review?->user ?? $request->user());
+
+        $role = $preview->review_role ?: 'supervisor';
+        $owner = $preview->user->name;
+        $preview->review_role = $role;
+        $preview->opponent_name = $role === 'opponent' ? $owner : null;
+
+        if ($role === 'supervisor') {
+            $preview->supervisor_name = $owner;
+        }
+
+        if ($preview->review_date) {
+            $preview->academic_year = Review::academicYearFor($preview->review_date);
+        }
+
+        try {
+            $result = (new GradeCalculator)->calculate($role, $payload);
+            $preview->final_grade = $result['letter'];
+            $preview->final_score = $result['score'];
+            $preview->final_recommendation = $result['recommended'] ? 'recommend' : 'not_recommend';
+        } catch (\InvalidArgumentException) {
+            // Incomplete grades: the preview simply shows the blank summary.
+        }
+
+        return $this->renderPdf($preview)->stream('nahlad-posudku.pdf');
+    }
+
+    private function renderPdf(Review $review)
+    {
         $pdf = Pdf::loadView('reviews.pdf', $this->formData($review))
             ->setPaper('a4');
         $fontMetrics = $pdf->getDomPDF()->getFontMetrics();
@@ -243,7 +301,7 @@ class ReviewController extends Controller
             }
         }
 
-        return $pdf->download($fileName);
+        return $pdf;
     }
 
     public function saveDraft(Request $request, ?Review $review = null): JsonResponse
@@ -348,9 +406,7 @@ class ReviewController extends Controller
         try {
             foreach ($reviews as $review) {
                 $fileName = Str::slug($review->student_name ?: 'posudok').'-'.$review->id.'-posudok.pdf';
-                $pdf = Pdf::loadView('reviews.pdf', $this->formData($review))
-                    ->setPaper('a4')
-                    ->output();
+                $pdf = $this->renderPdf($review)->output();
 
                 if (! $archive->addFromString($fileName, $pdf)) {
                     throw new RuntimeException('Nepodarilo sa pridať PDF posudku do ZIP archívu.');
@@ -400,6 +456,19 @@ class ReviewController extends Controller
             ->where('user_id', $request->user()->id)
             ->where('draft_key', $draftKey)
             ->delete();
+    }
+
+    private function nameSuggestions(Request $request): array
+    {
+        $names = Review::query()
+            ->where('user_id', $request->user()->id)
+            ->whereNotNull('supervisor_name')
+            ->where('supervisor_name', '!=', $request->user()->name)
+            ->distinct()
+            ->orderBy('supervisor_name')
+            ->pluck('supervisor_name');
+
+        return ['knownNames' => $names->all()];
     }
 
     private function formData(Review $review, ?ReviewDraft $draft = null): array

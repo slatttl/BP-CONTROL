@@ -206,7 +206,7 @@
                                                 @csrf
                                                 <button type="submit" class="font-medium text-rose-700 hover:text-rose-900">Kópia</button>
                                             </form>
-                                            <a href="{{ route('reviews.pdf', $review) }}" class="font-medium text-rose-700 hover:text-rose-900">PDF</a>
+                                            <a href="{{ route('reviews.pdf', $review) }}" target="_blank" rel="noopener" class="font-medium text-rose-700 hover:text-rose-900">PDF</a>
                                         </div>
                                     </td>
                                 </tr>

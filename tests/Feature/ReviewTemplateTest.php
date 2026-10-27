@@ -148,4 +148,64 @@ class ReviewTemplateTest extends TestCase
         $this->actingAs($user)->get(route('reviews.create'))->assertOk();
         $this->actingAs($user)->get(route('reviews.index', ['thesis_type' => 'master', 'review_role' => 'opponent']))->assertOk();
     }
+
+    public function test_pdf_is_streamed_inline_unless_download_is_requested(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user)->post(route('reviews.store'), $this->payload('bachelor', 'supervisor'));
+        $review = Review::firstOrFail();
+
+        $this->actingAs($user)->get(route('reviews.pdf', $review))
+            ->assertOk()
+            ->assertHeader('Content-Disposition', 'inline; filename='.\Illuminate\Support\Str::slug($review->student_name).'-posudok.pdf');
+        $this->assertStringStartsWith('attachment', $this->actingAs($user)
+            ->get(route('reviews.pdf', ['review' => $review, 'download' => 1]))
+            ->headers->get('Content-Disposition'));
+    }
+
+    public function test_pdf_does_not_truncate_long_comments(): void
+    {
+        $user = User::factory()->create();
+        $marker = 'KONIECTEXTU';
+        $this->actingAs($user)->post(route('reviews.store'), $this->payload('bachelor', 'supervisor', [
+            'literature_comment' => str_repeat('slovo ', 200).$marker,
+        ]));
+        $review = Review::firstOrFail();
+
+        $html = view('reviews.pdf', [
+            'review' => $review,
+            'grades' => config('review.grades'),
+            'gradeAdverbs' => config('review.grade_adverbs'),
+            'originalityStatuses' => config('review.originality_statuses'),
+        ])->render();
+
+        $this->assertStringContainsString($marker, $html);
+    }
+
+    public function test_unsaved_form_values_can_be_previewed_as_pdf(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)
+            ->post(route('reviews.preview'), $this->payload('master', 'opponent'))
+            ->assertOk();
+
+        $this->assertStringStartsWith('%PDF', $response->getContent());
+        $this->assertSame(0, Review::count());
+
+        $this->actingAs($user)
+            ->post(route('reviews.preview'), ['review_role' => 'opponent'])
+            ->assertOk();
+    }
+
+    public function test_opening_the_preview_url_directly_uses_the_draft_instead_of_404(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->get(route('reviews.preview'))->assertRedirect(route('reviews.create'));
+
+        $this->actingAs($user)->post(route('reviews.draft.store'), $this->payload('bachelor', 'supervisor'))->assertOk();
+        $response = $this->actingAs($user)->get(route('reviews.preview'))->assertOk();
+        $this->assertStringStartsWith('%PDF', $response->getContent());
+    }
 }

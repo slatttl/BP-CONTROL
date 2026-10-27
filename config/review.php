@@ -130,4 +130,42 @@ return [
 
     // First month of the academic year (September).
     'academic_year_start_month' => 9,
+
+    // Quick-insert phrases offered under the text fields of the review form (field name => phrases).
+    'phrases' => [
+        'activity_comment' => [
+            'Študent pracoval samostatne a systematicky.',
+            'Konzultácie sa konali pravidelne a študent sa na ne dôsledne pripravoval.',
+            'Študent preukázal tvorivý prístup k riešeniu problémov.',
+            'Pri riešení práce bol študent málo aktívny.',
+        ],
+        'quality_comment' => [
+            'Ciele stanovené v zadaní boli splnené.',
+            'Práca má logickú štruktúru a primeranú odbornú úroveň.',
+            'Použité metódy sú vhodné vzhľadom na cieľ práce.',
+            'Práca má praktický prínos.',
+            'Závery sú formulované vecne a jasne.',
+        ],
+        'literature_comment' => [
+            'Použitá literatúra je relevantná a vhodne zvolená.',
+            'Zdroje sú správne citované a v súlade s normou.',
+            'Rozsah použitej literatúry je dostatočný.',
+            'Autor primerane využíva domáce aj zahraničné zdroje.',
+        ],
+        'formal_comment' => [
+            'Práca spĺňa formálne náležitosti.',
+            'Práca je napísaná správnym odborným štýlom.',
+            'Grafická úprava práce je prehľadná.',
+            'V práci sa vyskytujú ojedinelé štylistické a typografické nedostatky.',
+        ],
+        'questions' => [
+            'K práci nemám zásadné pripomienky.',
+            'Pri obhajobe odporúčam objasniť zvolený metodický postup.',
+            'Pri obhajobe odporúčam zhodnotiť praktické využitie dosiahnutých výsledkov.',
+        ],
+        'originality_comment' => [
+            'Miera originality je vyhovujúca, zhody v protokole sú dôsledne citované.',
+            'Protokol o kontrole originality nepreukazuje podozrenie z plagiátorstva.',
+        ],
+    ],
 ];

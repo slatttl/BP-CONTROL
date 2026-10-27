@@ -16,6 +16,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/reviews/draft', [ReviewController::class, 'saveDraft'])->name('reviews.draft.store');
     Route::post('/reviews/bulk/pdf', [ReviewController::class, 'bulkPdf'])->name('reviews.bulk.pdf');
     Route::post('/reviews/bulk/csv', [ReviewController::class, 'bulkCsv'])->name('reviews.bulk.csv');
+    Route::match(['get', 'post', 'put'], '/reviews/preview/{review?}', [ReviewController::class, 'preview'])->name('reviews.preview');
     Route::get('/reviews/{review}/pdf', [ReviewController::class, 'pdf'])->name('reviews.pdf');
     Route::post('/reviews/{review}/draft', [ReviewController::class, 'saveDraft'])->name('reviews.draft.update');
     Route::post('/reviews/{review}/duplicate', [ReviewController::class, 'duplicate'])->name('reviews.duplicate');

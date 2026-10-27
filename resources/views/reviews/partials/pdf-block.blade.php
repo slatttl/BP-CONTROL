@@ -1,7 +1,5 @@
 @php
     $commentText = (string) ($review->{$block['comment']} ?? '');
-    $commentLimit = $blockName === $activeBlocks->keys()->first() ? 1000 : 500;
-    $commentText = \Illuminate\Support\Str::limit($commentText, $commentLimit, '…');
 @endphp
 <div class="section">
     <div class="section-title">{{ str_replace('{author}', $typeConfig['author_genitive'], $block['title']) }}</div>

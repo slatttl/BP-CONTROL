@@ -125,7 +125,12 @@
                         </label>
                         <label class="block">
                             <span class="text-sm font-medium text-gray-700">Meno vedúceho</span>
-                            <input id="supervisor_name" name="supervisor_name" value="{{ $isOpponentRole ? old('supervisor_name', $review->supervisor_name) : $ownerName }}" class="{{ $selectClasses }} {{ $isOpponentRole ? '' : 'bg-slate-50 text-slate-600' }}" @readonly(! $isOpponentRole) required>
+                            <input id="supervisor_name" name="supervisor_name" list="known-names" autocomplete="off" value="{{ $isOpponentRole ? old('supervisor_name', $review->supervisor_name) : $ownerName }}" class="{{ $selectClasses }} {{ $isOpponentRole ? '' : 'bg-slate-50 text-slate-600' }}" @readonly(! $isOpponentRole) required>
+                            <datalist id="known-names">
+                                @foreach ($knownNames as $knownName)
+                                    <option value="{{ $knownName }}"></option>
+                                @endforeach
+                            </datalist>
                             <span id="supervisor_hint" class="mt-1 block text-xs text-slate-500 {{ $isOpponentRole ? 'hidden' : '' }}">Vyplnené podľa prihláseného používateľa.</span>
                         </label>
                         <label id="opponent_field" class="block {{ $isOpponentRole ? '' : 'hidden' }}">
@@ -169,6 +174,8 @@
                             <span class="text-sm font-medium text-gray-700">Komentár</span>
                             <textarea name="{{ $block['comment'] }}" rows="5" class="{{ $selectClasses }}" required @disabled(! $active)>{{ old($block['comment'], $review->{$block['comment']}) }}</textarea>
                         </label>
+                        @include('reviews.partials.phrase-chips', ['field' => $block['comment']])
+                        <p class="mt-2 text-xs text-slate-500" data-fit-counter="{{ $block['comment'] }}" aria-live="polite"></p>
                     </section>
                 @endforeach
 
@@ -197,10 +204,12 @@
                         <span class="text-sm font-medium text-gray-700">Otázky a pripomienky k práci</span>
                         <textarea name="questions" rows="6" class="{{ $selectClasses }}" required>{{ old('questions', $review->questions) }}</textarea>
                     </label>
+                    @include('reviews.partials.phrase-chips', ['field' => 'questions'])
                     <label class="mt-6 block">
                         <span class="text-sm font-medium text-gray-700">Komentár k protokolu o kontrole originality</span>
                         <textarea name="originality_comment" rows="4" class="{{ $selectClasses }}" required>{{ old('originality_comment', $review->originality_comment) }}</textarea>
                     </label>
+                    @include('reviews.partials.phrase-chips', ['field' => 'originality_comment'])
                 </section>
 
                 <div class="flex items-center justify-end gap-3">
@@ -208,8 +217,9 @@
                         {{ $draft ? 'Rozpracované zmeny sú uložené.' : 'Zmeny sa ukladajú automaticky.' }}
                     </p>
                     @if ($review->exists)
-                        <a href="{{ route('reviews.show', $review) }}" class="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50">Náhľad</a>
+                        <a href="{{ route('reviews.show', $review) }}" class="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50">Detail</a>
                     @endif
+                    <button type="submit" formaction="{{ route('reviews.preview', $review->exists ? ['review' => $review] : []) }}" formtarget="_blank" formnovalidate data-preview class="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50">Náhľad PDF</button>
                     <button type="submit" class="rounded-2xl bg-rose-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-800">
                         {{ $review->exists ? 'Uložiť zmeny' : 'Vytvoriť posudok' }}
                     </button>
@@ -227,9 +237,15 @@
         let duplicateTimer;
         let draftSaveQueue = Promise.resolve();
         let duplicateRequest;
+        let submitting = false;
 
         const saveReviewDraft = () => {
+            if (submitting) {
+                return draftSaveQueue;
+            }
+
             const draftData = new FormData(reviewForm);
+            draftData.delete('_method');
             draftStatus.textContent = 'Ukladám rozpracované zmeny…';
             draftStatus.classList.remove('text-rose-700');
 
@@ -326,12 +342,16 @@
         });
         reviewForm.addEventListener('change', queueDraftSave);
         reviewForm.addEventListener('submit', (event) => {
-            event.preventDefault();
-            if (draftTimer !== null) {
-                window.clearTimeout(draftTimer);
-                draftTimer = null;
+            if (event.submitter?.hasAttribute('data-preview')) {
+                return;
             }
-            saveReviewDraft().finally(() => reviewForm.submit());
+
+            // Final submit: the server deletes the draft, so no further draft request may start.
+            event.preventDefault();
+            submitting = true;
+            window.clearTimeout(draftTimer);
+            draftTimer = null;
+            draftSaveQueue.finally(() => reviewForm.submit());
         });
 
         checkForDuplicateReview();
@@ -397,6 +417,56 @@
             recommendation.textContent = result.points < 6 ? 'Prácu odporúčam k obhajobe.' : 'Prácu neodporúčam k obhajobe.';
         };
 
+        const updateFitCounters = () => {
+            const role = field('review_role').value;
+            const order = Object.keys(reviewConfig.roleBlocks[role]);
+            const firstPageBlocks = role === 'opponent' ? 1 : 2;
+
+            document.querySelectorAll('[data-fit-counter]').forEach((counter) => {
+                const index = order.indexOf(counter.closest('[data-block]').dataset.block);
+                if (index === -1) {
+                    counter.textContent = '';
+                    return;
+                }
+
+                const limit = index === 0 ? 1000 : 500;
+                const page = index < firstPageBlocks ? 1 : 2;
+                const length = reviewForm.elements[counter.dataset.fitCounter].value.length;
+                const over = length > limit;
+
+                counter.textContent = over
+                    ? `${length} / ${limit} znakov – text presahuje rámček na strane ${page}, PDF sa môže rozšíriť na ďalšiu stranu.`
+                    : `${length} / ${limit} znakov – text sa zmestí do rámčeka na strane ${page}.`;
+                counter.classList.toggle('text-amber-700', over);
+                counter.classList.toggle('font-semibold', over);
+                counter.classList.toggle('text-slate-500', !over);
+            });
+        };
+
+        document.addEventListener('click', (event) => {
+            const chip = event.target.closest('[data-phrase]');
+            if (!chip) {
+                return;
+            }
+
+            const textarea = reviewForm.elements[chip.parentElement.dataset.phrasesFor];
+            const before = textarea.value.slice(0, textarea.selectionStart);
+            const after = textarea.value.slice(textarea.selectionEnd);
+            const separator = before && !/\s$/.test(before) ? ' ' : '';
+            const inserted = separator + chip.dataset.phrase;
+
+            textarea.value = before + inserted + (after && !/^\s/.test(after) ? ' ' : '') + after;
+            textarea.focus();
+            textarea.setSelectionRange(before.length + inserted.length, before.length + inserted.length);
+            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+
+        reviewForm.addEventListener('input', (event) => {
+            if (event.target.matches('textarea')) {
+                updateFitCounters();
+            }
+        });
+
         const applyTypeAndRole = () => {
             const type = field('thesis_type').value;
             const role = field('review_role').value;
@@ -406,7 +476,7 @@
             document.querySelectorAll('[data-block]').forEach((section) => {
                 const active = section.dataset.block in reviewConfig.roleBlocks[role];
                 section.classList.toggle('hidden', !active);
-                section.querySelectorAll('select, textarea').forEach((control) => { control.disabled = !active; });
+                section.querySelectorAll('select, textarea, input').forEach((control) => { control.disabled = !active; });
             });
 
             document.querySelectorAll('[data-labels]').forEach((label) => {
@@ -435,6 +505,7 @@
             }
 
             updateGradePreview();
+            updateFitCounters();
         };
 
         field('thesis_type').addEventListener('change', applyTypeAndRole);
@@ -450,5 +521,6 @@
         });
 
         updateGradePreview();
+        updateFitCounters();
     </script>
 </x-app-layout>
